@@ -76541,32 +76541,30 @@ async function loadModel(modelPath, pluginDir) {
   }
   const ort = getOrt(pluginDir);
   ort.env.wasm.numThreads = 1;
-  const wasmFile = pathMod.join(pluginDir, "ort-wasm-simd-threaded.wasm");
-  if (fs.existsSync(wasmFile)) {
-    console.log(`[Blanq] Loading WASM from disk: ${wasmFile}`);
-    const wasmBuffer = fs.readFileSync(wasmFile);
-    const wasmBlob = new Blob([wasmBuffer], { type: "application/wasm" });
-    const wasmUrl = URL.createObjectURL(wasmBlob);
-    ort.env.wasm.wasmPaths = {
-      "ort-wasm-simd-threaded.wasm": wasmUrl,
-      "ort-wasm-simd.wasm": wasmUrl,
-      "ort-wasm.wasm": wasmUrl,
-      "ort-wasm-threaded.wasm": wasmUrl
-    };
-    console.log("[Blanq] WASM blob URL created");
-  } else {
-    console.warn(`[Blanq] WASM file not found: ${wasmFile}`);
-    const dirUrl = "file:///" + pluginDir.replace(/\\/g, "/") + "/";
-    ort.env.wasm.wasmPaths = dirUrl;
-    console.log(`[Blanq] WASM fallback path: ${dirUrl}`);
+  ort.env.wasm.proxy = false;
+  const wasmFiles = fs.readdirSync(pluginDir).filter((f) => f.endsWith(".wasm"));
+  console.log(`[Blanq] Found WASM files: ${wasmFiles.join(", ")}`);
+  const wasmPaths = {};
+  for (const wf of wasmFiles) {
+    const fullPath = pathMod.join(pluginDir, wf);
+    const buf = fs.readFileSync(fullPath);
+    const blob = new Blob([buf], { type: "application/wasm" });
+    wasmPaths[wf] = URL.createObjectURL(blob);
+    console.log(`[Blanq] WASM blob: ${wf} (${(buf.length / 1e6).toFixed(1)} MB)`);
   }
+  ort.env.wasm.wasmPaths = wasmPaths;
   console.log("[Blanq] Reading model into memory...");
   const modelBuffer = fs.readFileSync(modelPath);
   console.log(`[Blanq] Model size: ${(modelBuffer.length / 1e6).toFixed(1)} MB`);
-  console.log("[Blanq] Creating inference session...");
-  modelSession = await ort.InferenceSession.create(modelBuffer.buffer, {
-    executionProviders: ["wasm"]
-  });
+  console.log("[Blanq] Creating inference session (this may take a moment)...");
+  try {
+    modelSession = await ort.InferenceSession.create(modelBuffer.buffer, {
+      executionProviders: ["wasm"]
+    });
+  } catch (e) {
+    console.error("[Blanq] InferenceSession.create failed:", e);
+    throw e;
+  }
   console.log("[Blanq] Model loaded successfully");
   return modelSession;
 }

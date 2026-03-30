@@ -60,40 +60,38 @@ export async function loadModel(modelPath: string, pluginDir: string): Promise<a
 
   const ort = getOrt(pluginDir);
 
+  // Disable threading — Obsidian's Electron may not support SharedArrayBuffer workers
   ort.env.wasm.numThreads = 1;
+  ort.env.wasm.proxy = false;
 
-  // Override WASM loading: read files from disk and create blob URLs
-  // (Obsidian blocks file:// URLs for WASM)
-  const wasmFile = pathMod.join(pluginDir, "ort-wasm-simd-threaded.wasm");
-  if (fs.existsSync(wasmFile)) {
-    console.log(`[Blanq] Loading WASM from disk: ${wasmFile}`);
-    const wasmBuffer = fs.readFileSync(wasmFile);
-    const wasmBlob = new Blob([wasmBuffer], { type: "application/wasm" });
-    const wasmUrl = URL.createObjectURL(wasmBlob);
-    ort.env.wasm.wasmPaths = {
-      "ort-wasm-simd-threaded.wasm": wasmUrl,
-      "ort-wasm-simd.wasm": wasmUrl,
-      "ort-wasm.wasm": wasmUrl,
-      "ort-wasm-threaded.wasm": wasmUrl,
-    };
-    console.log("[Blanq] WASM blob URL created");
-  } else {
-    console.warn(`[Blanq] WASM file not found: ${wasmFile}`);
-    // Fallback to directory path as URL
-    const dirUrl = "file:///" + pluginDir.replace(/\\/g, "/") + "/";
-    ort.env.wasm.wasmPaths = dirUrl;
-    console.log(`[Blanq] WASM fallback path: ${dirUrl}`);
+  // Create blob URLs for ALL possible WASM filenames ort might request
+  const wasmFiles = fs.readdirSync(pluginDir).filter((f: string) => f.endsWith(".wasm"));
+  console.log(`[Blanq] Found WASM files: ${wasmFiles.join(", ")}`);
+
+  const wasmPaths: Record<string, string> = {};
+  for (const wf of wasmFiles) {
+    const fullPath = pathMod.join(pluginDir, wf);
+    const buf = fs.readFileSync(fullPath);
+    const blob = new Blob([buf], { type: "application/wasm" });
+    wasmPaths[wf] = URL.createObjectURL(blob);
+    console.log(`[Blanq] WASM blob: ${wf} (${(buf.length / 1e6).toFixed(1)} MB)`);
   }
+  ort.env.wasm.wasmPaths = wasmPaths;
 
   // Load model as ArrayBuffer (avoids file:// path issues)
   console.log("[Blanq] Reading model into memory...");
   const modelBuffer = fs.readFileSync(modelPath);
   console.log(`[Blanq] Model size: ${(modelBuffer.length / 1e6).toFixed(1)} MB`);
 
-  console.log("[Blanq] Creating inference session...");
-  modelSession = await ort.InferenceSession.create(modelBuffer.buffer, {
-    executionProviders: ["wasm"],
-  });
+  console.log("[Blanq] Creating inference session (this may take a moment)...");
+  try {
+    modelSession = await ort.InferenceSession.create(modelBuffer.buffer, {
+      executionProviders: ["wasm"],
+    });
+  } catch (e: any) {
+    console.error("[Blanq] InferenceSession.create failed:", e);
+    throw e;
+  }
   console.log("[Blanq] Model loaded successfully");
   return modelSession;
 }
