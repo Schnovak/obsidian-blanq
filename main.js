@@ -597,8 +597,8 @@ var require_pdf = __commonJS({
               exports2.FeatureTest = FeatureTest;
               const hexNumbers = [...Array(256).keys()].map((n) => n.toString(16).padStart(2, "0"));
               class Util {
-                static makeHexColor(r, g2, b) {
-                  return `#${hexNumbers[r]}${hexNumbers[g2]}${hexNumbers[b]}`;
+                static makeHexColor(r, g, b) {
+                  return `#${hexNumbers[r]}${hexNumbers[g]}${hexNumbers[b]}`;
                 }
                 static scaleMinMax(transform, minMax) {
                   let temp;
@@ -648,15 +648,15 @@ var require_pdf = __commonJS({
                   return [m1[0] * m2[0] + m1[2] * m2[1], m1[1] * m2[0] + m1[3] * m2[1], m1[0] * m2[2] + m1[2] * m2[3], m1[1] * m2[2] + m1[3] * m2[3], m1[0] * m2[4] + m1[2] * m2[5] + m1[4], m1[1] * m2[4] + m1[3] * m2[5] + m1[5]];
                 }
                 static applyTransform(p, m) {
-                  const xt2 = p[0] * m[0] + p[1] * m[2] + m[4];
+                  const xt = p[0] * m[0] + p[1] * m[2] + m[4];
                   const yt = p[0] * m[1] + p[1] * m[3] + m[5];
-                  return [xt2, yt];
+                  return [xt, yt];
                 }
                 static applyInverseTransform(p, m) {
                   const d = m[0] * m[3] - m[1] * m[2];
-                  const xt2 = (p[0] * m[3] - p[1] * m[2] + m[2] * m[5] - m[4] * m[3]) / d;
+                  const xt = (p[0] * m[3] - p[1] * m[2] + m[2] * m[5] - m[4] * m[3]) / d;
                   const yt = (-p[0] * m[1] + p[1] * m[0] + m[4] * m[1] - m[5] * m[0]) / d;
-                  return [xt2, yt];
+                  return [xt, yt];
                 }
                 static getAxialAlignedBoundingBox(r, m) {
                   const p1 = this.applyTransform(r, m);
@@ -743,13 +743,13 @@ var require_pdf = __commonJS({
                       tvalues.push(t2);
                     }
                   }
-                  let j2 = tvalues.length, mt2;
-                  const jlen = j2;
-                  while (j2--) {
-                    t = tvalues[j2];
-                    mt2 = 1 - t;
-                    bounds[0][j2] = mt2 * mt2 * mt2 * x0 + 3 * mt2 * mt2 * t * x1 + 3 * mt2 * t * t * x2 + t * t * t * x3;
-                    bounds[1][j2] = mt2 * mt2 * mt2 * y0 + 3 * mt2 * mt2 * t * y1 + 3 * mt2 * t * t * y2 + t * t * t * y3;
+                  let j = tvalues.length, mt;
+                  const jlen = j;
+                  while (j--) {
+                    t = tvalues[j];
+                    mt = 1 - t;
+                    bounds[0][j] = mt * mt * mt * x0 + 3 * mt * mt * t * x1 + 3 * mt * t * t * x2 + t * t * t * x3;
+                    bounds[1][j] = mt * mt * mt * y0 + 3 * mt * mt * t * y1 + 3 * mt * t * t * y2 + t * t * t * y3;
                   }
                   bounds[0][jlen] = x0;
                   bounds[1][jlen] = y0;
@@ -5165,8 +5165,8 @@ var require_pdf = __commonJS({
                     for (let i = 0; i <= n; i++) {
                       const k = Math.round(fgGray + i * step);
                       const value = newStart + i * newStep;
-                      for (let j2 = prev; j2 <= k; j2++) {
-                        arr[j2] = value;
+                      for (let j = prev; j <= k; j++) {
+                        arr[j] = value;
                       }
                       prev = k + 1;
                     }
@@ -6448,7 +6448,7 @@ var require_pdf = __commonJS({
                 const POINT_TYPES = new Uint8Array([0, 2, 4, 0, 1, 0, 5, 4, 8, 10, 0, 8, 0, 2, 1, 0]);
                 const width1 = width + 1;
                 let points = new Uint8Array(width1 * (height + 1));
-                let i, j2, j0;
+                let i, j, j0;
                 const lineSize = width + 7 & ~7;
                 let data = new Uint8Array(lineSize * height), pos = 0;
                 for (const elem of imgData.data) {
@@ -6464,15 +6464,15 @@ var require_pdf = __commonJS({
                   points[0] = 1;
                   ++count;
                 }
-                for (j2 = 1; j2 < width; j2++) {
+                for (j = 1; j < width; j++) {
                   if (data[pos] !== data[pos + 1]) {
-                    points[j2] = data[pos] ? 2 : 1;
+                    points[j] = data[pos] ? 2 : 1;
                     ++count;
                   }
                   pos++;
                 }
                 if (data[pos] !== 0) {
-                  points[j2] = 2;
+                  points[j] = 2;
                   ++count;
                 }
                 for (i = 1; i < height; i++) {
@@ -6483,16 +6483,16 @@ var require_pdf = __commonJS({
                     ++count;
                   }
                   let sum = (data[pos] ? 4 : 0) + (data[pos - lineSize] ? 8 : 0);
-                  for (j2 = 1; j2 < width; j2++) {
+                  for (j = 1; j < width; j++) {
                     sum = (sum >> 2) + (data[pos + 1] ? 4 : 0) + (data[pos - lineSize + 1] ? 8 : 0);
                     if (POINT_TYPES[sum]) {
-                      points[j0 + j2] = POINT_TYPES[sum];
+                      points[j0 + j] = POINT_TYPES[sum];
                       ++count;
                     }
                     pos++;
                   }
                   if (data[pos - lineSize] !== data[pos]) {
-                    points[j0 + j2] = data[pos] ? 2 : 4;
+                    points[j0 + j] = data[pos] ? 2 : 4;
                     ++count;
                   }
                   if (count > POINT_TO_PROCESS_LIMIT) {
@@ -6505,15 +6505,15 @@ var require_pdf = __commonJS({
                   points[j0] = 8;
                   ++count;
                 }
-                for (j2 = 1; j2 < width; j2++) {
+                for (j = 1; j < width; j++) {
                   if (data[pos] !== data[pos + 1]) {
-                    points[j0 + j2] = data[pos] ? 4 : 8;
+                    points[j0 + j] = data[pos] ? 4 : 8;
                     ++count;
                   }
                   pos++;
                 }
                 if (data[pos] !== 0) {
-                  points[j0 + j2] = 4;
+                  points[j0 + j] = 4;
                   ++count;
                 }
                 if (count > POINT_TO_PROCESS_LIMIT) {
@@ -6682,7 +6682,7 @@ var require_pdf = __commonJS({
                 let srcPos = 0, destPos;
                 const src = imgData.data;
                 const dest = chunkImgData.data;
-                let i, j2, thisChunkHeight, elemsInThisChunk;
+                let i, j, thisChunkHeight, elemsInThisChunk;
                 if (imgData.kind === _util2.ImageKind.GRAYSCALE_1BPP) {
                   const srcLength = src.byteLength;
                   const dest32 = new Uint32Array(dest.buffer, 0, dest.byteLength >> 2);
@@ -6693,7 +6693,7 @@ var require_pdf = __commonJS({
                   for (i = 0; i < totalChunks; i++) {
                     thisChunkHeight = i < fullChunks ? FULL_CHUNK_HEIGHT : partialChunkHeight;
                     destPos = 0;
-                    for (j2 = 0; j2 < thisChunkHeight; j2++) {
+                    for (j = 0; j < thisChunkHeight; j++) {
                       const srcDiff = srcLength - srcPos;
                       let k = 0;
                       const kEnd = srcDiff > fullSrcDiff ? width : srcDiff * 8 - 7;
@@ -6726,18 +6726,18 @@ var require_pdf = __commonJS({
                     ctx.putImageData(chunkImgData, 0, i * FULL_CHUNK_HEIGHT);
                   }
                 } else if (imgData.kind === _util2.ImageKind.RGBA_32BPP) {
-                  j2 = 0;
+                  j = 0;
                   elemsInThisChunk = width * FULL_CHUNK_HEIGHT * 4;
                   for (i = 0; i < fullChunks; i++) {
                     dest.set(src.subarray(srcPos, srcPos + elemsInThisChunk));
                     srcPos += elemsInThisChunk;
-                    ctx.putImageData(chunkImgData, 0, j2);
-                    j2 += FULL_CHUNK_HEIGHT;
+                    ctx.putImageData(chunkImgData, 0, j);
+                    j += FULL_CHUNK_HEIGHT;
                   }
                   if (i < totalChunks) {
                     elemsInThisChunk = width * partialChunkHeight * 4;
                     dest.set(src.subarray(srcPos, srcPos + elemsInThisChunk));
-                    ctx.putImageData(chunkImgData, 0, j2);
+                    ctx.putImageData(chunkImgData, 0, j);
                   }
                 } else if (imgData.kind === _util2.ImageKind.RGB_24BPP) {
                   thisChunkHeight = FULL_CHUNK_HEIGHT;
@@ -6748,7 +6748,7 @@ var require_pdf = __commonJS({
                       elemsInThisChunk = width * thisChunkHeight;
                     }
                     destPos = 0;
-                    for (j2 = elemsInThisChunk; j2--; ) {
+                    for (j = elemsInThisChunk; j--; ) {
                       dest[destPos++] = src[srcPos++];
                       dest[destPos++] = src[srcPos++];
                       dest[destPos++] = src[srcPos++];
@@ -7341,13 +7341,13 @@ var require_pdf = __commonJS({
                   const currentTransform = (0, _display_utils2.getCurrentTransform)(ctx);
                   const isScalingMatrix = currentTransform[0] === 0 && currentTransform[3] === 0 || currentTransform[1] === 0 && currentTransform[2] === 0;
                   const minMaxForBezier = isScalingMatrix ? minMax.slice(0) : null;
-                  for (let i = 0, j2 = 0, ii = ops.length; i < ii; i++) {
+                  for (let i = 0, j = 0, ii = ops.length; i < ii; i++) {
                     switch (ops[i] | 0) {
                       case _util2.OPS.rectangle:
-                        x = args[j2++];
-                        y = args[j2++];
-                        const width = args[j2++];
-                        const height = args[j2++];
+                        x = args[j++];
+                        y = args[j++];
+                        const width = args[j++];
+                        const height = args[j++];
                         const xw = x + width;
                         const yh = y + height;
                         ctx.moveTo(x, y);
@@ -7364,16 +7364,16 @@ var require_pdf = __commonJS({
                         ctx.closePath();
                         break;
                       case _util2.OPS.moveTo:
-                        x = args[j2++];
-                        y = args[j2++];
+                        x = args[j++];
+                        y = args[j++];
                         ctx.moveTo(x, y);
                         if (!isScalingMatrix) {
                           current.updatePathMinMax(currentTransform, x, y);
                         }
                         break;
                       case _util2.OPS.lineTo:
-                        x = args[j2++];
-                        y = args[j2++];
+                        x = args[j++];
+                        y = args[j++];
                         ctx.lineTo(x, y);
                         if (!isScalingMatrix) {
                           current.updatePathMinMax(currentTransform, x, y);
@@ -7382,29 +7382,29 @@ var require_pdf = __commonJS({
                       case _util2.OPS.curveTo:
                         startX = x;
                         startY = y;
-                        x = args[j2 + 4];
-                        y = args[j2 + 5];
-                        ctx.bezierCurveTo(args[j2], args[j2 + 1], args[j2 + 2], args[j2 + 3], x, y);
-                        current.updateCurvePathMinMax(currentTransform, startX, startY, args[j2], args[j2 + 1], args[j2 + 2], args[j2 + 3], x, y, minMaxForBezier);
-                        j2 += 6;
+                        x = args[j + 4];
+                        y = args[j + 5];
+                        ctx.bezierCurveTo(args[j], args[j + 1], args[j + 2], args[j + 3], x, y);
+                        current.updateCurvePathMinMax(currentTransform, startX, startY, args[j], args[j + 1], args[j + 2], args[j + 3], x, y, minMaxForBezier);
+                        j += 6;
                         break;
                       case _util2.OPS.curveTo2:
                         startX = x;
                         startY = y;
-                        ctx.bezierCurveTo(x, y, args[j2], args[j2 + 1], args[j2 + 2], args[j2 + 3]);
-                        current.updateCurvePathMinMax(currentTransform, startX, startY, x, y, args[j2], args[j2 + 1], args[j2 + 2], args[j2 + 3], minMaxForBezier);
-                        x = args[j2 + 2];
-                        y = args[j2 + 3];
-                        j2 += 4;
+                        ctx.bezierCurveTo(x, y, args[j], args[j + 1], args[j + 2], args[j + 3]);
+                        current.updateCurvePathMinMax(currentTransform, startX, startY, x, y, args[j], args[j + 1], args[j + 2], args[j + 3], minMaxForBezier);
+                        x = args[j + 2];
+                        y = args[j + 3];
+                        j += 4;
                         break;
                       case _util2.OPS.curveTo3:
                         startX = x;
                         startY = y;
-                        x = args[j2 + 2];
-                        y = args[j2 + 3];
-                        ctx.bezierCurveTo(args[j2], args[j2 + 1], x, y, x, y);
-                        current.updateCurvePathMinMax(currentTransform, startX, startY, args[j2], args[j2 + 1], x, y, x, y, minMaxForBezier);
-                        j2 += 4;
+                        x = args[j + 2];
+                        y = args[j + 3];
+                        ctx.bezierCurveTo(args[j], args[j + 1], x, y, x, y);
+                        current.updateCurvePathMinMax(currentTransform, startX, startY, args[j], args[j + 1], x, y, x, y, minMaxForBezier);
+                        j += 4;
                         break;
                       case _util2.OPS.closePath:
                         ctx.closePath();
@@ -7876,13 +7876,13 @@ var require_pdf = __commonJS({
                   this.current.fillColor = this.getColorN_Pattern(arguments);
                   this.current.patternFill = true;
                 }
-                setStrokeRGBColor(r, g2, b) {
-                  const color = _util2.Util.makeHexColor(r, g2, b);
+                setStrokeRGBColor(r, g, b) {
+                  const color = _util2.Util.makeHexColor(r, g, b);
                   this.ctx.strokeStyle = color;
                   this.current.strokeColor = color;
                 }
-                setFillRGBColor(r, g2, b) {
-                  const color = _util2.Util.makeHexColor(r, g2, b);
+                setFillRGBColor(r, g, b) {
+                  const color = _util2.Util.makeHexColor(r, g, b);
                   this.ctx.fillStyle = color;
                   this.current.fillColor = color;
                   this.current.patternFill = false;
@@ -8634,7 +8634,7 @@ var require_pdf = __commonJS({
                   cbb = c1b - (c1b - c3b) * k;
                   const x1_ = Math.round(Math.min(xa, xb));
                   const x2_ = Math.round(Math.max(xa, xb));
-                  let j2 = rowSize * y + x1_ * 4;
+                  let j = rowSize * y + x1_ * 4;
                   for (let x = x1_; x <= x2_; x++) {
                     k = (xa - x) / (xa - xb);
                     if (k < 0) {
@@ -8642,10 +8642,10 @@ var require_pdf = __commonJS({
                     } else if (k > 1) {
                       k = 1;
                     }
-                    bytes[j2++] = car - (car - cbr) * k | 0;
-                    bytes[j2++] = cag - (cag - cbg) * k | 0;
-                    bytes[j2++] = cab - (cab - cbb) * k | 0;
-                    bytes[j2++] = 255;
+                    bytes[j++] = car - (car - cbr) * k | 0;
+                    bytes[j++] = cag - (cag - cbg) * k | 0;
+                    bytes[j++] = cab - (cab - cbb) * k | 0;
+                    bytes[j++] = 255;
                   }
                 }
               }
@@ -8659,10 +8659,10 @@ var require_pdf = __commonJS({
                     const rows = Math.floor(ps.length / verticesPerRow) - 1;
                     const cols = verticesPerRow - 1;
                     for (i = 0; i < rows; i++) {
-                      let q2 = i * verticesPerRow;
-                      for (let j2 = 0; j2 < cols; j2++, q2++) {
-                        drawTriangle(data, context, ps[q2], ps[q2 + 1], ps[q2 + verticesPerRow], cs[q2], cs[q2 + 1], cs[q2 + verticesPerRow]);
-                        drawTriangle(data, context, ps[q2 + verticesPerRow + 1], ps[q2 + 1], ps[q2 + verticesPerRow], cs[q2 + verticesPerRow + 1], cs[q2 + 1], cs[q2 + verticesPerRow]);
+                      let q = i * verticesPerRow;
+                      for (let j = 0; j < cols; j++, q++) {
+                        drawTriangle(data, context, ps[q], ps[q + 1], ps[q + verticesPerRow], cs[q], cs[q + 1], cs[q + verticesPerRow]);
+                        drawTriangle(data, context, ps[q + verticesPerRow + 1], ps[q + 1], ps[q + verticesPerRow], cs[q + verticesPerRow + 1], cs[q + 1], cs[q + verticesPerRow]);
                       }
                     }
                     break;
@@ -8953,8 +8953,8 @@ var require_pdf = __commonJS({
                     continue;
                   }
                   const elem = srcPos < srcLength ? src[srcPos++] : 255;
-                  for (let j2 = 0; j2 < widthRemainder; j2++) {
-                    dest[destPos++] = elem & 1 << 7 - j2 ? oneMapping : zeroMapping;
+                  for (let j = 0; j < widthRemainder; j++) {
+                    dest[destPos++] = elem & 1 << 7 - j ? oneMapping : zeroMapping;
                   }
                 }
                 return {
@@ -8983,8 +8983,8 @@ var require_pdf = __commonJS({
                     dest[destPos + 2] = s2 >>> 16 | s3 << 16 | 4278190080;
                     dest[destPos + 3] = s3 >>> 8 | 4278190080;
                   }
-                  for (let j2 = i * 4, jj = src.length; j2 < jj; j2 += 3) {
-                    dest[destPos++] = src[j2] | src[j2 + 1] << 8 | src[j2 + 2] << 16 | 4278190080;
+                  for (let j = i * 4, jj = src.length; j < jj; j += 3) {
+                    dest[destPos++] = src[j] | src[j + 1] << 8 | src[j + 2] << 16 | 4278190080;
                   }
                 } else {
                   for (; i < len32 - 2; i += 3, destPos += 4) {
@@ -8996,8 +8996,8 @@ var require_pdf = __commonJS({
                     dest[destPos + 2] = s2 << 16 | s3 >>> 16 | 255;
                     dest[destPos + 3] = s3 << 8 | 255;
                   }
-                  for (let j2 = i * 4, jj = src.length; j2 < jj; j2 += 3) {
-                    dest[destPos++] = src[j2] << 24 | src[j2 + 1] << 16 | src[j2 + 2] << 8 | 255;
+                  for (let j = i * 4, jj = src.length; j < jj; j += 3) {
+                    dest[destPos++] = src[j] << 24 | src[j + 1] << 16 | src[j + 2] << 8 | 255;
                   }
                 }
                 return {
@@ -11890,14 +11890,14 @@ var require_pdf = __commonJS({
                 setStrokeAlpha(strokeAlpha) {
                   this.current.strokeAlpha = strokeAlpha;
                 }
-                setStrokeRGBColor(r, g2, b) {
-                  this.current.strokeColor = _util2.Util.makeHexColor(r, g2, b);
+                setStrokeRGBColor(r, g, b) {
+                  this.current.strokeColor = _util2.Util.makeHexColor(r, g, b);
                 }
                 setFillAlpha(fillAlpha) {
                   this.current.fillAlpha = fillAlpha;
                 }
-                setFillRGBColor(r, g2, b) {
-                  this.current.fillColor = _util2.Util.makeHexColor(r, g2, b);
+                setFillRGBColor(r, g, b) {
+                  this.current.fillColor = _util2.Util.makeHexColor(r, g, b);
                   this.current.tspan = this.svgFactory.createElement("svg:tspan");
                   this.current.xcoords = [];
                   this.current.ycoords = [];
@@ -12037,45 +12037,45 @@ var require_pdf = __commonJS({
                   const current = this.current;
                   let x = current.x, y = current.y;
                   let d = [];
-                  let j2 = 0;
+                  let j = 0;
                   for (const op of ops) {
                     switch (op | 0) {
                       case _util2.OPS.rectangle:
-                        x = args[j2++];
-                        y = args[j2++];
-                        const width = args[j2++];
-                        const height = args[j2++];
+                        x = args[j++];
+                        y = args[j++];
+                        const width = args[j++];
+                        const height = args[j++];
                         const xw = x + width;
                         const yh = y + height;
                         d.push("M", pf(x), pf(y), "L", pf(xw), pf(y), "L", pf(xw), pf(yh), "L", pf(x), pf(yh), "Z");
                         break;
                       case _util2.OPS.moveTo:
-                        x = args[j2++];
-                        y = args[j2++];
+                        x = args[j++];
+                        y = args[j++];
                         d.push("M", pf(x), pf(y));
                         break;
                       case _util2.OPS.lineTo:
-                        x = args[j2++];
-                        y = args[j2++];
+                        x = args[j++];
+                        y = args[j++];
                         d.push("L", pf(x), pf(y));
                         break;
                       case _util2.OPS.curveTo:
-                        x = args[j2 + 4];
-                        y = args[j2 + 5];
-                        d.push("C", pf(args[j2]), pf(args[j2 + 1]), pf(args[j2 + 2]), pf(args[j2 + 3]), pf(x), pf(y));
-                        j2 += 6;
+                        x = args[j + 4];
+                        y = args[j + 5];
+                        d.push("C", pf(args[j]), pf(args[j + 1]), pf(args[j + 2]), pf(args[j + 3]), pf(x), pf(y));
+                        j += 6;
                         break;
                       case _util2.OPS.curveTo2:
-                        d.push("C", pf(x), pf(y), pf(args[j2]), pf(args[j2 + 1]), pf(args[j2 + 2]), pf(args[j2 + 3]));
-                        x = args[j2 + 2];
-                        y = args[j2 + 3];
-                        j2 += 4;
+                        d.push("C", pf(x), pf(y), pf(args[j]), pf(args[j + 1]), pf(args[j + 2]), pf(args[j + 3]));
+                        x = args[j + 2];
+                        y = args[j + 3];
+                        j += 4;
                         break;
                       case _util2.OPS.curveTo3:
-                        x = args[j2 + 2];
-                        y = args[j2 + 3];
-                        d.push("C", pf(args[j2]), pf(args[j2 + 1]), pf(x), pf(y), pf(x), pf(y));
-                        j2 += 4;
+                        x = args[j + 2];
+                        y = args[j + 3];
+                        d.push("C", pf(args[j]), pf(args[j + 1]), pf(x), pf(y), pf(x), pf(y));
+                        j += 4;
                         break;
                       case _util2.OPS.closePath:
                         d.push("Z");
@@ -16196,22 +16196,22 @@ var require_pdf = __commonJS({
                 static CMYK_G([c, y, m, k]) {
                   return ["G", 1 - Math.min(1, 0.3 * c + 0.59 * m + 0.11 * y + k)];
                 }
-                static G_CMYK([g2]) {
-                  return ["CMYK", 0, 0, 0, 1 - g2];
+                static G_CMYK([g]) {
+                  return ["CMYK", 0, 0, 0, 1 - g];
                 }
-                static G_RGB([g2]) {
-                  return ["RGB", g2, g2, g2];
+                static G_RGB([g]) {
+                  return ["RGB", g, g, g];
                 }
-                static G_rgb([g2]) {
-                  g2 = scaleAndClamp(g2);
-                  return [g2, g2, g2];
+                static G_rgb([g]) {
+                  g = scaleAndClamp(g);
+                  return [g, g, g];
                 }
-                static G_HTML([g2]) {
-                  const G = makeColorComp(g2);
+                static G_HTML([g]) {
+                  const G = makeColorComp(g);
                   return `#${G}${G}${G}`;
                 }
-                static RGB_G([r, g2, b]) {
-                  return ["G", 0.3 * r + 0.59 * g2 + 0.11 * b];
+                static RGB_G([r, g, b]) {
+                  return ["G", 0.3 * r + 0.59 * g + 0.11 * b];
                 }
                 static RGB_rgb(color) {
                   return color.map(scaleAndClamp);
@@ -16235,9 +16235,9 @@ var require_pdf = __commonJS({
                   const rgb = this.CMYK_RGB(components).slice(1);
                   return this.RGB_HTML(rgb);
                 }
-                static RGB_CMYK([r, g2, b]) {
+                static RGB_CMYK([r, g, b]) {
                   const c = 1 - r;
-                  const m = 1 - g2;
+                  const m = 1 - g;
                   const y = 1 - b;
                   const k = Math.min(c, m, y);
                   return ["CMYK", c, m, y, k];
@@ -17189,8 +17189,8 @@ var require_pdf = __commonJS({
                   for (const bezier of this.paths) {
                     const buffer = [];
                     const points = [];
-                    for (let j2 = 0, jj = bezier.length; j2 < jj; j2++) {
-                      const [first, control1, control2, second] = bezier[j2];
+                    for (let j = 0, jj = bezier.length; j < jj; j++) {
+                      const [first, control1, control2, second] = bezier[j];
                       const p10 = s * first[0] + shiftX;
                       const p11 = s * first[1] + shiftY;
                       const p20 = s * control1[0] + shiftX;
@@ -17199,13 +17199,13 @@ var require_pdf = __commonJS({
                       const p31 = s * control2[1] + shiftY;
                       const p40 = s * second[0] + shiftX;
                       const p41 = s * second[1] + shiftY;
-                      if (j2 === 0) {
+                      if (j === 0) {
                         buffer.push(p10, p11);
                         points.push(p10, p11);
                       }
                       buffer.push(p20, p21, p30, p31, p40, p41);
                       points.push(p20, p21);
-                      if (j2 === jj - 1) {
+                      if (j === jj - 1) {
                         points.push(p40, p41);
                       }
                     }
@@ -18119,10 +18119,10 @@ function __generator(thisArg, body) {
   var _ = { label: 0, sent: function() {
     if (t[0] & 1) throw t[1];
     return t[1];
-  }, trys: [], ops: [] }, f, y, t, g2;
-  return g2 = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g2[Symbol.iterator] = function() {
+  }, trys: [], ops: [] }, f, y, t, g;
+  return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() {
     return this;
-  }), g2;
+  }), g;
   function verb(n) {
     return function(v) {
       return step([n, v]);
@@ -18227,8 +18227,8 @@ function __spread() {
 function __spreadArrays() {
   for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
   for (var r = Array(s), k = 0, i = 0; i < il; i++)
-    for (var a = arguments[i], j2 = 0, jl = a.length; j2 < jl; j2++, k++)
-      r[k] = a[j2];
+    for (var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++)
+      r[k] = a[j];
   return r;
 }
 function __await(v) {
@@ -18236,26 +18236,26 @@ function __await(v) {
 }
 function __asyncGenerator(thisArg, _arguments, generator) {
   if (!Symbol.asyncIterator) throw new TypeError("Symbol.asyncIterator is not defined.");
-  var g2 = generator.apply(thisArg, _arguments || []), i, q2 = [];
+  var g = generator.apply(thisArg, _arguments || []), i, q = [];
   return i = {}, verb("next"), verb("throw"), verb("return"), i[Symbol.asyncIterator] = function() {
     return this;
   }, i;
   function verb(n) {
-    if (g2[n]) i[n] = function(v) {
+    if (g[n]) i[n] = function(v) {
       return new Promise(function(a, b) {
-        q2.push([n, v, a, b]) > 1 || resume(n, v);
+        q.push([n, v, a, b]) > 1 || resume(n, v);
       });
     };
   }
   function resume(n, v) {
     try {
-      step(g2[n](v));
+      step(g[n](v));
     } catch (e) {
-      settle(q2[0][3], e);
+      settle(q[0][3], e);
     }
   }
   function step(r) {
-    r.value instanceof __await ? Promise.resolve(r.value.v).then(fulfill, reject) : settle(q2[0][2], r);
+    r.value instanceof __await ? Promise.resolve(r.value.v).then(fulfill, reject) : settle(q[0][2], r);
   }
   function fulfill(value) {
     resume("next", value);
@@ -18264,7 +18264,7 @@ function __asyncGenerator(thisArg, _arguments, generator) {
     resume("throw", value);
   }
   function settle(f, v) {
-    if (f(v), q2.shift(), q2.length) resume(q2[0][0], q2[0][1]);
+    if (f(v), q.shift(), q.length) resume(q[0][0], q[0][1]);
   }
 }
 function __asyncDelegator(o) {
@@ -19317,17 +19317,17 @@ var require_trees = __commonJS({
     }
     function pqdownheap(s, tree, k) {
       var v = s.heap[k];
-      var j2 = k << 1;
-      while (j2 <= s.heap_len) {
-        if (j2 < s.heap_len && smaller(tree, s.heap[j2 + 1], s.heap[j2], s.depth)) {
-          j2++;
+      var j = k << 1;
+      while (j <= s.heap_len) {
+        if (j < s.heap_len && smaller(tree, s.heap[j + 1], s.heap[j], s.depth)) {
+          j++;
         }
-        if (smaller(tree, v, s.heap[j2], s.depth)) {
+        if (smaller(tree, v, s.heap[j], s.depth)) {
           break;
         }
-        s.heap[k] = s.heap[j2];
-        k = j2;
-        j2 <<= 1;
+        s.heap[k] = s.heap[j];
+        k = j;
+        j <<= 1;
       }
       s.heap[k] = v;
     }
@@ -20796,10 +20796,10 @@ var require_strings2 = __commonJS({
       STR_APPLY_UIA_OK = false;
     }
     var _utf8len = new utils.Buf8(256);
-    for (q2 = 0; q2 < 256; q2++) {
-      _utf8len[q2] = q2 >= 252 ? 6 : q2 >= 248 ? 5 : q2 >= 240 ? 4 : q2 >= 224 ? 3 : q2 >= 192 ? 2 : 1;
+    for (q = 0; q < 256; q++) {
+      _utf8len[q] = q >= 252 ? 6 : q >= 248 ? 5 : q >= 240 ? 4 : q >= 224 ? 3 : q >= 192 ? 2 : 1;
     }
-    var q2;
+    var q;
     _utf8len[254] = _utf8len[254] = 1;
     exports2.string2buf = function(str) {
       var buf, c, c2, m_pos, i, str_len = str.length, buf_len = 0;
@@ -21707,8 +21707,8 @@ var require_inflate = __commonJS({
     var ENOUGH_DISTS = 592;
     var MAX_WBITS = 15;
     var DEF_WBITS = MAX_WBITS;
-    function zswap32(q2) {
-      return (q2 >>> 24 & 255) + (q2 >>> 8 & 65280) + ((q2 & 65280) << 8) + ((q2 & 255) << 24);
+    function zswap32(q) {
+      return (q >>> 24 & 255) + (q >>> 8 & 65280) + ((q & 65280) << 8) + ((q & 255) << 24);
     }
     function InflateState() {
       this.mode = 0;
@@ -27157,8 +27157,8 @@ var require_CustomFontEmbedder = __commonJS({
               var codePoint = _this.font.characterSet[idx];
               glyphs[idx] = _this.font.glyphForCodePoint(codePoint);
             }
-            return utils_1.sortedUniq(glyphs.sort(utils_1.byAscendingId), function(g2) {
-              return g2.id;
+            return utils_1.sortedUniq(glyphs.sort(utils_1.byAscendingId), function(g) {
+              return g.id;
             });
           };
           this.font = font;
@@ -27676,13 +27676,13 @@ var require_UPNG = __commonJS({
         var frm = out.frames[i];
         var fx = frm.rect.x, fy = frm.rect.y, fw = frm.rect.width, fh = frm.rect.height;
         var fdata = UPNG.toRGBA8.decodeImage(frm.data, fw, fh, out);
-        if (i != 0) for (var j2 = 0; j2 < len; j2++) prev[j2] = img[j2];
+        if (i != 0) for (var j = 0; j < len; j++) prev[j] = img[j];
         if (frm.blend == 0) UPNG._copyTile(fdata, fw, fh, img, w, h, fx, fy, 0);
         else if (frm.blend == 1) UPNG._copyTile(fdata, fw, fh, img, w, h, fx, fy, 1);
         frms.push(img.buffer.slice(0));
         if (frm.dispose == 0) {
         } else if (frm.dispose == 1) UPNG._copyTile(empty, fw, fh, img, w, h, fx, fy, 0);
-        else if (frm.dispose == 2) for (var j2 = 0; j2 < len; j2++) img[j2] = prev[j2];
+        else if (frm.dispose == 2) for (var j = 0; j < len; j++) img[j] = prev[j];
       }
       return frms;
     };
@@ -27733,39 +27733,39 @@ var require_UPNG = __commonJS({
         if (depth == 1) for (var y = 0; y < h; y++) {
           var s0 = y * bpl, t0 = y * w;
           for (var i = 0; i < w; i++) {
-            var qi = t0 + i << 2, j2 = data[s0 + (i >> 3)] >> 7 - ((i & 7) << 0) & 1, cj = 3 * j2;
+            var qi = t0 + i << 2, j = data[s0 + (i >> 3)] >> 7 - ((i & 7) << 0) & 1, cj = 3 * j;
             bf[qi] = p[cj];
             bf[qi + 1] = p[cj + 1];
             bf[qi + 2] = p[cj + 2];
-            bf[qi + 3] = j2 < tl ? ap[j2] : 255;
+            bf[qi + 3] = j < tl ? ap[j] : 255;
           }
         }
         if (depth == 2) for (var y = 0; y < h; y++) {
           var s0 = y * bpl, t0 = y * w;
           for (var i = 0; i < w; i++) {
-            var qi = t0 + i << 2, j2 = data[s0 + (i >> 2)] >> 6 - ((i & 3) << 1) & 3, cj = 3 * j2;
+            var qi = t0 + i << 2, j = data[s0 + (i >> 2)] >> 6 - ((i & 3) << 1) & 3, cj = 3 * j;
             bf[qi] = p[cj];
             bf[qi + 1] = p[cj + 1];
             bf[qi + 2] = p[cj + 2];
-            bf[qi + 3] = j2 < tl ? ap[j2] : 255;
+            bf[qi + 3] = j < tl ? ap[j] : 255;
           }
         }
         if (depth == 4) for (var y = 0; y < h; y++) {
           var s0 = y * bpl, t0 = y * w;
           for (var i = 0; i < w; i++) {
-            var qi = t0 + i << 2, j2 = data[s0 + (i >> 1)] >> 4 - ((i & 1) << 2) & 15, cj = 3 * j2;
+            var qi = t0 + i << 2, j = data[s0 + (i >> 1)] >> 4 - ((i & 1) << 2) & 15, cj = 3 * j;
             bf[qi] = p[cj];
             bf[qi + 1] = p[cj + 1];
             bf[qi + 2] = p[cj + 2];
-            bf[qi + 3] = j2 < tl ? ap[j2] : 255;
+            bf[qi + 3] = j < tl ? ap[j] : 255;
           }
         }
         if (depth == 8) for (var i = 0; i < area; i++) {
-          var qi = i << 2, j2 = data[i], cj = 3 * j2;
+          var qi = i << 2, j = data[i], cj = 3 * j;
           bf[qi] = p[cj];
           bf[qi + 1] = p[cj + 1];
           bf[qi + 2] = p[cj + 2];
-          bf[qi + 3] = j2 < tl ? ap[j2] : 255;
+          bf[qi + 3] = j < tl ? ap[j] : 255;
         }
       } else if (ctype == 4) {
         if (depth == 8) for (var i = 0; i < area; i++) {
@@ -27938,9 +27938,9 @@ var require_UPNG = __commonJS({
       var H = {};
       H.H = {};
       H.H.N = function(N, W) {
-        var R = Uint8Array, i = 0, m = 0, J2 = 0, h = 0, Q2 = 0, X = 0, u = 0, w = 0, d = 0, v, C2;
+        var R = Uint8Array, i = 0, m = 0, J = 0, h = 0, Q = 0, X = 0, u = 0, w = 0, d = 0, v, C;
         if (N[0] == 3 && N[1] == 0) return W ? W : new R(0);
-        var V2 = H.H, n = V2.b, A2 = V2.e, l = V2.R, M = V2.n, I = V2.A, e = V2.Z, b = V2.m, Z = W == null;
+        var V = H.H, n = V.b, A = V.e, l = V.R, M = V.n, I = V.A, e = V.Z, b = V.m, Z = W == null;
         if (Z) W = new R(N.length >>> 2 << 3);
         while (i == 0) {
           i = n(N, d, 1);
@@ -27948,49 +27948,49 @@ var require_UPNG = __commonJS({
           d += 3;
           if (m == 0) {
             if ((d & 7) != 0) d += 8 - (d & 7);
-            var D = (d >>> 3) + 4, q2 = N[D - 4] | N[D - 3] << 8;
-            if (Z) W = H.H.W(W, w + q2);
-            W.set(new R(N.buffer, N.byteOffset + D, q2), w);
-            d = D + q2 << 3;
-            w += q2;
+            var D = (d >>> 3) + 4, q = N[D - 4] | N[D - 3] << 8;
+            if (Z) W = H.H.W(W, w + q);
+            W.set(new R(N.buffer, N.byteOffset + D, q), w);
+            d = D + q << 3;
+            w += q;
             continue;
           }
           if (Z) W = H.H.W(W, w + (1 << 17));
           if (m == 1) {
             v = b.J;
-            C2 = b.h;
+            C = b.h;
             X = (1 << 9) - 1;
             u = (1 << 5) - 1;
           }
           if (m == 2) {
-            J2 = A2(N, d, 5) + 257;
-            h = A2(N, d + 5, 5) + 1;
-            Q2 = A2(N, d + 10, 4) + 4;
+            J = A(N, d, 5) + 257;
+            h = A(N, d + 5, 5) + 1;
+            Q = A(N, d + 10, 4) + 4;
             d += 14;
-            var E2 = d, j2 = 1;
+            var E = d, j = 1;
             for (var c = 0; c < 38; c += 2) {
               b.Q[c] = 0;
               b.Q[c + 1] = 0;
             }
-            for (var c = 0; c < Q2; c++) {
-              var K2 = A2(N, d + c * 3, 3);
-              b.Q[(b.X[c] << 1) + 1] = K2;
-              if (K2 > j2) j2 = K2;
+            for (var c = 0; c < Q; c++) {
+              var K = A(N, d + c * 3, 3);
+              b.Q[(b.X[c] << 1) + 1] = K;
+              if (K > j) j = K;
             }
-            d += 3 * Q2;
-            M(b.Q, j2);
-            I(b.Q, j2, b.u);
+            d += 3 * Q;
+            M(b.Q, j);
+            I(b.Q, j, b.u);
             v = b.w;
-            C2 = b.d;
-            d = l(b.u, (1 << j2) - 1, J2 + h, N, d, b.v);
-            var r = V2.V(b.v, 0, J2, b.C);
+            C = b.d;
+            d = l(b.u, (1 << j) - 1, J + h, N, d, b.v);
+            var r = V.V(b.v, 0, J, b.C);
             X = (1 << r) - 1;
-            var S = V2.V(b.v, J2, h, b.D);
+            var S = V.V(b.v, J, h, b.D);
             u = (1 << S) - 1;
             M(b.C, r);
             I(b.C, r, v);
             M(b.D, S);
-            I(b.D, S, C2);
+            I(b.D, S, C);
           }
           while (true) {
             var T = v[e(N, d) & X];
@@ -28004,13 +28004,13 @@ var require_UPNG = __commonJS({
               var z = w + p - 254;
               if (p > 264) {
                 var _ = b.q[p - 257];
-                z = w + (_ >>> 3) + A2(N, d, _ & 7);
+                z = w + (_ >>> 3) + A(N, d, _ & 7);
                 d += _ & 7;
               }
-              var $2 = C2[e(N, d) & u];
-              d += $2 & 15;
-              var s = $2 >>> 4, Y2 = b.c[s], a = (Y2 >>> 4) + n(N, d, Y2 & 15);
-              d += Y2 & 15;
+              var $ = C[e(N, d) & u];
+              d += $ & 15;
+              var s = $ >>> 4, Y = b.c[s], a = (Y >>> 4) + n(N, d, Y & 15);
+              d += Y & 15;
               while (w < z) {
                 W[w] = W[w++ - a];
                 W[w] = W[w++ - a];
@@ -28026,69 +28026,69 @@ var require_UPNG = __commonJS({
       H.H.W = function(N, W) {
         var R = N.length;
         if (W <= R) return N;
-        var V2 = new Uint8Array(R << 1);
-        V2.set(N, 0);
-        return V2;
+        var V = new Uint8Array(R << 1);
+        V.set(N, 0);
+        return V;
       };
-      H.H.R = function(N, W, R, V2, n, A2) {
+      H.H.R = function(N, W, R, V, n, A) {
         var l = H.H.e, M = H.H.Z, I = 0;
         while (I < R) {
-          var e = N[M(V2, n) & W];
+          var e = N[M(V, n) & W];
           n += e & 15;
           var b = e >>> 4;
           if (b <= 15) {
-            A2[I] = b;
+            A[I] = b;
             I++;
           } else {
             var Z = 0, m = 0;
             if (b == 16) {
-              m = 3 + l(V2, n, 2);
+              m = 3 + l(V, n, 2);
               n += 2;
-              Z = A2[I - 1];
+              Z = A[I - 1];
             } else if (b == 17) {
-              m = 3 + l(V2, n, 3);
+              m = 3 + l(V, n, 3);
               n += 3;
             } else if (b == 18) {
-              m = 11 + l(V2, n, 7);
+              m = 11 + l(V, n, 7);
               n += 7;
             }
-            var J2 = I + m;
-            while (I < J2) {
-              A2[I] = Z;
+            var J = I + m;
+            while (I < J) {
+              A[I] = Z;
               I++;
             }
           }
         }
         return n;
       };
-      H.H.V = function(N, W, R, V2) {
-        var n = 0, A2 = 0, l = V2.length >>> 1;
-        while (A2 < R) {
-          var M = N[A2 + W];
-          V2[A2 << 1] = 0;
-          V2[(A2 << 1) + 1] = M;
+      H.H.V = function(N, W, R, V) {
+        var n = 0, A = 0, l = V.length >>> 1;
+        while (A < R) {
+          var M = N[A + W];
+          V[A << 1] = 0;
+          V[(A << 1) + 1] = M;
           if (M > n) n = M;
-          A2++;
+          A++;
         }
-        while (A2 < l) {
-          V2[A2 << 1] = 0;
-          V2[(A2 << 1) + 1] = 0;
-          A2++;
+        while (A < l) {
+          V[A << 1] = 0;
+          V[(A << 1) + 1] = 0;
+          A++;
         }
         return n;
       };
       H.H.n = function(N, W) {
-        var R = H.H.m, V2 = N.length, n, A2, l, M, I, e = R.j;
+        var R = H.H.m, V = N.length, n, A, l, M, I, e = R.j;
         for (var M = 0; M <= W; M++) e[M] = 0;
-        for (M = 1; M < V2; M += 2) e[N[M]]++;
+        for (M = 1; M < V; M += 2) e[N[M]]++;
         var b = R.K;
         n = 0;
         e[0] = 0;
-        for (A2 = 1; A2 <= W; A2++) {
-          n = n + e[A2 - 1] << 1;
-          b[A2] = n;
+        for (A = 1; A <= W; A++) {
+          n = n + e[A - 1] << 1;
+          b[A] = n;
         }
-        for (l = 0; l < V2; l += 2) {
+        for (l = 0; l < V; l += 2) {
           I = N[l + 1];
           if (I != 0) {
             N[l] = b[I];
@@ -28097,35 +28097,35 @@ var require_UPNG = __commonJS({
         }
       };
       H.H.A = function(N, W, R) {
-        var V2 = N.length, n = H.H.m, A2 = n.r;
-        for (var l = 0; l < V2; l += 2) if (N[l + 1] != 0) {
+        var V = N.length, n = H.H.m, A = n.r;
+        for (var l = 0; l < V; l += 2) if (N[l + 1] != 0) {
           var M = l >> 1, I = N[l + 1], e = M << 4 | I, b = W - I, Z = N[l] << b, m = Z + (1 << b);
           while (Z != m) {
-            var J2 = A2[Z] >>> 15 - W;
-            R[J2] = e;
+            var J = A[Z] >>> 15 - W;
+            R[J] = e;
             Z++;
           }
         }
       };
       H.H.l = function(N, W) {
-        var R = H.H.m.r, V2 = 15 - W;
+        var R = H.H.m.r, V = 15 - W;
         for (var n = 0; n < N.length; n += 2) {
-          var A2 = N[n] << W - N[n + 1];
-          N[n] = R[A2] >>> V2;
+          var A = N[n] << W - N[n + 1];
+          N[n] = R[A] >>> V;
         }
       };
       H.H.M = function(N, W, R) {
         R = R << (W & 7);
-        var V2 = W >>> 3;
-        N[V2] |= R;
-        N[V2 + 1] |= R >>> 8;
+        var V = W >>> 3;
+        N[V] |= R;
+        N[V + 1] |= R >>> 8;
       };
       H.H.I = function(N, W, R) {
         R = R << (W & 7);
-        var V2 = W >>> 3;
-        N[V2] |= R;
-        N[V2 + 1] |= R >>> 8;
-        N[V2 + 2] |= R >>> 16;
+        var V = W >>> 3;
+        N[V] |= R;
+        N[V + 1] |= R >>> 8;
+        N[V + 2] |= R >>> 16;
       };
       H.H.e = function(N, W, R) {
         return (N[W >>> 3] | N[(W >>> 3) + 1] << 8) >>> (W & 7) & (1 << R) - 1;
@@ -28174,15 +28174,15 @@ var require_UPNG = __commonJS({
       (function() {
         var N = H.H.m, W = 1 << 15;
         for (var R = 0; R < W; R++) {
-          var V2 = R;
-          V2 = (V2 & 2863311530) >>> 1 | (V2 & 1431655765) << 1;
-          V2 = (V2 & 3435973836) >>> 2 | (V2 & 858993459) << 2;
-          V2 = (V2 & 4042322160) >>> 4 | (V2 & 252645135) << 4;
-          V2 = (V2 & 4278255360) >>> 8 | (V2 & 16711935) << 8;
-          N.r[R] = (V2 >>> 16 | V2 << 16) >>> 17;
+          var V = R;
+          V = (V & 2863311530) >>> 1 | (V & 1431655765) << 1;
+          V = (V & 3435973836) >>> 2 | (V & 858993459) << 2;
+          V = (V & 4042322160) >>> 4 | (V & 252645135) << 4;
+          V = (V & 4278255360) >>> 8 | (V & 16711935) << 8;
+          N.r[R] = (V >>> 16 | V << 16) >>> 17;
         }
-        function n(A2, l, M) {
-          while (l-- != 0) A2.push(0, M);
+        function n(A, l, M) {
+          while (l-- != 0) A.push(0, M);
         }
         for (var R = 0; R < 32; R++) {
           N.q[R] = N.S[R] << 3 | N.T[R];
@@ -28253,7 +28253,7 @@ var require_UPNG = __commonJS({
             }
             if (bpp >= 8) {
               var ii = row * bpl + col * cbpp;
-              for (var j2 = 0; j2 < cbpp; j2++) img[ii + j2] = data[(cdi >> 3) + j2];
+              for (var j = 0; j < cbpp; j++) img[ii + j] = data[(cdi >> 3) + j];
             }
             cdi += bpp;
             col += ci;
@@ -28459,11 +28459,11 @@ var require_UPNG = __commonJS({
         for (var i = 0; i < dl; i++) if (nimg.plte[i] >>> 24 != 255) pltAlpha = true;
         leng += 8 + dl * 3 + 4 + (pltAlpha ? 8 + dl * 1 + 4 : 0);
       }
-      for (var j2 = 0; j2 < nimg.frames.length; j2++) {
-        var fr = nimg.frames[j2];
+      for (var j = 0; j < nimg.frames.length; j++) {
+        var fr = nimg.frames[j];
         if (anim) leng += 38;
         leng += fr.cimg.length + 12;
-        if (j2 != 0) leng += 4;
+        if (j != 0) leng += 4;
       }
       leng += 12;
       var data = new Uint8Array(leng);
@@ -28532,9 +28532,9 @@ var require_UPNG = __commonJS({
         wAs(data, offset, "PLTE");
         offset += 4;
         for (var i = 0; i < dl; i++) {
-          var ti = i * 3, c = nimg.plte[i], r = c & 255, g2 = c >>> 8 & 255, b = c >>> 16 & 255;
+          var ti = i * 3, c = nimg.plte[i], r = c & 255, g = c >>> 8 & 255, b = c >>> 16 & 255;
           data[offset + ti + 0] = r;
-          data[offset + ti + 1] = g2;
+          data[offset + ti + 1] = g;
           data[offset + ti + 2] = b;
         }
         offset += dl * 3;
@@ -28552,8 +28552,8 @@ var require_UPNG = __commonJS({
         }
       }
       var fi = 0;
-      for (var j2 = 0; j2 < nimg.frames.length; j2++) {
-        var fr = nimg.frames[j2];
+      for (var j = 0; j < nimg.frames.length; j++) {
+        var fr = nimg.frames[j];
         if (anim) {
           wUi(data, offset, 26);
           offset += 4;
@@ -28569,7 +28569,7 @@ var require_UPNG = __commonJS({
           offset += 4;
           wUi(data, offset, fr.rect.y);
           offset += 4;
-          wUs(data, offset, dels[j2]);
+          wUs(data, offset, dels[j]);
           offset += 2;
           wUs(data, offset, 1e3);
           offset += 2;
@@ -28581,12 +28581,12 @@ var require_UPNG = __commonJS({
           offset += 4;
         }
         var imgd = fr.cimg, dl = imgd.length;
-        wUi(data, offset, dl + (j2 == 0 ? 0 : 4));
+        wUi(data, offset, dl + (j == 0 ? 0 : 4));
         offset += 4;
         var ioff = offset;
-        wAs(data, offset, j2 == 0 ? "IDAT" : "fdAT");
+        wAs(data, offset, j == 0 ? "IDAT" : "fdAT");
         offset += 4;
-        if (j2 != 0) {
+        if (j != 0) {
           wUi(data, offset, fi++);
           offset += 4;
         }
@@ -28613,8 +28613,8 @@ var require_UPNG = __commonJS({
     UPNG.encode.compress = function(bufs, w, h, ps, prms) {
       var onlyBlend = prms[0], evenCrd = prms[1], forbidPrev = prms[2], minBits = prms[3], forbidPlte = prms[4];
       var ctype = 6, depth = 8, alphaAnd = 255;
-      for (var j2 = 0; j2 < bufs.length; j2++) {
-        var img = new Uint8Array(bufs[j2]), ilen = img.length;
+      for (var j = 0; j < bufs.length; j++) {
+        var img = new Uint8Array(bufs[j]), ilen = img.length;
         for (var i = 0; i < ilen; i += 4) alphaAnd &= img[i + 3];
       }
       var gotAlpha = alphaAnd != 255;
@@ -28628,18 +28628,18 @@ var require_UPNG = __commonJS({
         for (var i = 0; i < frms.length; i++) {
           var ti = frms[i].img, bln = ti.length;
           inds.push(new Uint8Array(qres.inds.buffer, cof >> 2, bln >> 2));
-          for (var j2 = 0; j2 < bln; j2 += 4) {
-            ti[j2] = bb[cof + j2];
-            ti[j2 + 1] = bb[cof + j2 + 1];
-            ti[j2 + 2] = bb[cof + j2 + 2];
-            ti[j2 + 3] = bb[cof + j2 + 3];
+          for (var j = 0; j < bln; j += 4) {
+            ti[j] = bb[cof + j];
+            ti[j + 1] = bb[cof + j + 1];
+            ti[j + 2] = bb[cof + j + 2];
+            ti[j + 3] = bb[cof + j + 3];
           }
           cof += bln;
         }
         for (var i = 0; i < qres.plte.length; i++) plte.push(qres.plte[i].est.rgba);
       } else {
-        for (var j2 = 0; j2 < frms.length; j2++) {
-          var frm = frms[j2], img32 = new Uint32Array(frm.img.buffer), nw = frm.rect.width, ilen = img32.length;
+        for (var j = 0; j < frms.length; j++) {
+          var frm = frms[j], img32 = new Uint32Array(frm.img.buffer), nw = frm.rect.width, ilen = img32.length;
           var ind = new Uint8Array(ilen);
           inds.push(ind);
           for (var i = 0; i < ilen; i++) {
@@ -28666,14 +28666,14 @@ var require_UPNG = __commonJS({
         else depth = 8;
         depth = Math.max(depth, minBits);
       }
-      for (var j2 = 0; j2 < frms.length; j2++) {
-        var frm = frms[j2], nx = frm.rect.x, ny = frm.rect.y, nw = frm.rect.width, nh = frm.rect.height;
+      for (var j = 0; j < frms.length; j++) {
+        var frm = frms[j], nx = frm.rect.x, ny = frm.rect.y, nw = frm.rect.width, nh = frm.rect.height;
         var cimg = frm.img, cimg32 = new Uint32Array(cimg.buffer);
         var bpl = 4 * nw, bpp = 4;
         if (cc <= 256 && forbidPlte == false) {
           bpl = Math.ceil(depth * nw / 8);
           var nimg = new Uint8Array(bpl * nh);
-          var inj = inds[j2];
+          var inj = inds[j];
           for (var y = 0; y < nh; y++) {
             var i = y * bpl, ii = y * nw;
             if (depth == 8) for (var x = 0; x < nw; x++) nimg[i + x] = inj[ii + x];
@@ -28710,14 +28710,14 @@ var require_UPNG = __commonJS({
     };
     UPNG.encode.framize = function(bufs, w, h, alwaysBlend, evenCrd, forbidPrev) {
       var frms = [];
-      for (var j2 = 0; j2 < bufs.length; j2++) {
-        var cimg = new Uint8Array(bufs[j2]), cimg32 = new Uint32Array(cimg.buffer);
+      for (var j = 0; j < bufs.length; j++) {
+        var cimg = new Uint8Array(bufs[j]), cimg32 = new Uint32Array(cimg.buffer);
         var nimg;
         var nx = 0, ny = 0, nw = w, nh = h, blend = alwaysBlend ? 1 : 0;
-        if (j2 != 0) {
-          var tlim = forbidPrev || alwaysBlend || j2 == 1 || frms[j2 - 2].dispose != 0 ? 1 : 2, tstp = 0, tarea = 1e9;
-          for (var it2 = 0; it2 < tlim; it2++) {
-            var pimg = new Uint8Array(bufs[j2 - 1 - it2]), p32 = new Uint32Array(bufs[j2 - 1 - it2]);
+        if (j != 0) {
+          var tlim = forbidPrev || alwaysBlend || j == 1 || frms[j - 2].dispose != 0 ? 1 : 2, tstp = 0, tarea = 1e9;
+          for (var it = 0; it < tlim; it++) {
+            var pimg = new Uint8Array(bufs[j - 1 - it]), p32 = new Uint32Array(bufs[j - 1 - it]);
             var mix = w, miy = h, max = -1, may = -1;
             for (var y = 0; y < h; y++) for (var x = 0; x < w; x++) {
               var i = y * w + x;
@@ -28736,15 +28736,15 @@ var require_UPNG = __commonJS({
             var sarea = (max - mix + 1) * (may - miy + 1);
             if (sarea < tarea) {
               tarea = sarea;
-              tstp = it2;
+              tstp = it;
               nx = mix;
               ny = miy;
               nw = max - mix + 1;
               nh = may - miy + 1;
             }
           }
-          var pimg = new Uint8Array(bufs[j2 - 1 - tstp]);
-          if (tstp == 1) frms[j2 - 1].dispose = 2;
+          var pimg = new Uint8Array(bufs[j - 1 - tstp]);
+          if (tstp == 1) frms[j - 1].dispose = 2;
           nimg = new Uint8Array(nw * nh * 4);
           UPNG._copyTile(pimg, w, h, nimg, nw, nh, -nx, -ny, 0);
           blend = UPNG._copyTile(cimg, w, h, nimg, nw, nh, -nx, -ny, 3) ? 1 : 0;
@@ -28768,10 +28768,10 @@ var require_UPNG = __commonJS({
           dispose: 0
         });
       }
-      if (alwaysBlend) for (var j2 = 0; j2 < frms.length; j2++) {
-        var frm = frms[j2];
+      if (alwaysBlend) for (var j = 0; j < frms.length; j++) {
+        var frm = frms[j];
         if (frm.blend == 1) continue;
-        var r0 = frm.rect, r1 = frms[j2 - 1].rect;
+        var r0 = frm.rect, r1 = frms[j - 1].rect;
         var miX = Math.min(r0.x, r1.x), miY = Math.min(r0.y, r1.y);
         var maX = Math.max(r0.x + r0.width, r1.x + r1.width), maY = Math.max(r0.y + r0.height, r1.y + r1.height);
         var r = {
@@ -28780,9 +28780,9 @@ var require_UPNG = __commonJS({
           width: maX - miX,
           height: maY - miY
         };
-        frms[j2 - 1].dispose = 1;
-        if (j2 - 1 != 0) UPNG.encode._updateFrame(bufs, w, h, frms, j2 - 1, r, evenCrd);
-        UPNG.encode._updateFrame(bufs, w, h, frms, j2, r, evenCrd);
+        frms[j - 1].dispose = 1;
+        if (j - 1 != 0) UPNG.encode._updateFrame(bufs, w, h, frms, j - 1, r, evenCrd);
+        UPNG.encode._updateFrame(bufs, w, h, frms, j, r, evenCrd);
       }
       var area = 0;
       if (bufs.length != 1) for (var i = 0; i < frms.length; i++) {
@@ -28798,8 +28798,8 @@ var require_UPNG = __commonJS({
       var mix = w, miy = h, max = -1, may = -1;
       for (var y = 0; y < r.height; y++) for (var x = 0; x < r.width; x++) {
         var cx = r.x + x, cy = r.y + y;
-        var j2 = cy * w + cx, cc = cimg32[j2];
-        if (cc == 0 || frms[i - 1].dispose == 0 && pimg32[j2] == cc && (nimg == null || nimg[j2 * 4 + 3] != 0)) {
+        var j = cy * w + cx, cc = cimg32[j];
+        if (cc == 0 || frms[i - 1].dispose == 0 && pimg32[j] == cc && (nimg == null || nimg[j * 4 + 3] != 0)) {
         } else {
           if (cx < mix) mix = cx;
           if (cx > max) max = cx;
@@ -28908,8 +28908,8 @@ var require_UPNG = __commonJS({
       var sb = oimg, tb = nimg32, len = sb.length;
       var inds = new Uint8Array(oimg.length >> 2);
       for (var i = 0; i < len; i += 4) {
-        var r = sb[i] * (1 / 255), g2 = sb[i + 1] * (1 / 255), b = sb[i + 2] * (1 / 255), a = sb[i + 3] * (1 / 255);
-        var nd = UPNG.quantize.getNearest(root, r, g2, b, a);
+        var r = sb[i] * (1 / 255), g = sb[i + 1] * (1 / 255), b = sb[i + 2] * (1 / 255), a = sb[i + 3] * (1 / 255);
+        var nd = UPNG.quantize.getNearest(root, r, g, b, a);
         inds[i >> 2] = nd.ind;
         tb[i >> 2] = nd.est.rgba;
       }
@@ -28987,28 +28987,28 @@ var require_UPNG = __commonJS({
       for (var i = 0; i < leafs.length; i++) leafs[i].ind = i;
       return [root, leafs];
     };
-    UPNG.quantize.getNearest = function(nd, r, g2, b, a) {
+    UPNG.quantize.getNearest = function(nd, r, g, b, a) {
       if (nd.left == null) {
-        nd.tdst = UPNG.quantize.dist(nd.est.q, r, g2, b, a);
+        nd.tdst = UPNG.quantize.dist(nd.est.q, r, g, b, a);
         return nd;
       }
-      var planeDst = UPNG.quantize.planeDst(nd.est, r, g2, b, a);
+      var planeDst = UPNG.quantize.planeDst(nd.est, r, g, b, a);
       var node0 = nd.left, node1 = nd.right;
       if (planeDst > 0) {
         node0 = nd.right;
         node1 = nd.left;
       }
-      var ln = UPNG.quantize.getNearest(node0, r, g2, b, a);
+      var ln = UPNG.quantize.getNearest(node0, r, g, b, a);
       if (ln.tdst <= planeDst * planeDst) return ln;
-      var rn = UPNG.quantize.getNearest(node1, r, g2, b, a);
+      var rn = UPNG.quantize.getNearest(node1, r, g, b, a);
       return rn.tdst < ln.tdst ? rn : ln;
     };
-    UPNG.quantize.planeDst = function(est, r, g2, b, a) {
+    UPNG.quantize.planeDst = function(est, r, g, b, a) {
       var e = est.e;
-      return e[0] * r + e[1] * g2 + e[2] * b + e[3] * a - est.eMq;
+      return e[0] * r + e[1] * g + e[2] * b + e[3] * a - est.eMq;
     };
-    UPNG.quantize.dist = function(q2, r, g2, b, a) {
-      var d0 = r - q2[0], d1 = g2 - q2[1], d2 = b - q2[2], d3 = a - q2[3];
+    UPNG.quantize.dist = function(q, r, g, b, a) {
+      var d0 = r - q[0], d1 = g - q[1], d2 = b - q[2], d3 = a - q[3];
       return d0 * d0 + d1 * d1 + d2 * d2 + d3 * d3;
     };
     UPNG.quantize.splitPixels = function(nimg, nimg32, i0, i1, e, eMq) {
@@ -29036,18 +29036,18 @@ var require_UPNG = __commonJS({
       var m = [0, 0, 0, 0];
       var N = i1 - i0 >> 2;
       for (var i = i0; i < i1; i += 4) {
-        var r = nimg[i] * (1 / 255), g2 = nimg[i + 1] * (1 / 255), b = nimg[i + 2] * (1 / 255), a = nimg[i + 3] * (1 / 255);
+        var r = nimg[i] * (1 / 255), g = nimg[i + 1] * (1 / 255), b = nimg[i + 2] * (1 / 255), a = nimg[i + 3] * (1 / 255);
         m[0] += r;
-        m[1] += g2;
+        m[1] += g;
         m[2] += b;
         m[3] += a;
         R[0] += r * r;
-        R[1] += r * g2;
+        R[1] += r * g;
         R[2] += r * b;
         R[3] += r * a;
-        R[5] += g2 * g2;
-        R[6] += g2 * b;
-        R[7] += g2 * a;
+        R[5] += g * g;
+        R[6] += g * b;
+        R[7] += g * a;
         R[10] += b * b;
         R[11] += b * a;
         R[15] += a * a;
@@ -29068,25 +29068,25 @@ var require_UPNG = __commonJS({
       var R = stats.R, m = stats.m, N = stats.N;
       var m0 = m[0], m1 = m[1], m2 = m[2], m3 = m[3], iN = N == 0 ? 0 : 1 / N;
       var Rj = [R[0] - m0 * m0 * iN, R[1] - m0 * m1 * iN, R[2] - m0 * m2 * iN, R[3] - m0 * m3 * iN, R[4] - m1 * m0 * iN, R[5] - m1 * m1 * iN, R[6] - m1 * m2 * iN, R[7] - m1 * m3 * iN, R[8] - m2 * m0 * iN, R[9] - m2 * m1 * iN, R[10] - m2 * m2 * iN, R[11] - m2 * m3 * iN, R[12] - m3 * m0 * iN, R[13] - m3 * m1 * iN, R[14] - m3 * m2 * iN, R[15] - m3 * m3 * iN];
-      var A2 = Rj, M = UPNG.M4;
+      var A = Rj, M = UPNG.M4;
       var b = [0.5, 0.5, 0.5, 0.5], mi = 0, tmi = 0;
       if (N != 0) for (var i = 0; i < 10; i++) {
-        b = M.multVec(A2, b);
+        b = M.multVec(A, b);
         tmi = Math.sqrt(M.dot(b, b));
         b = M.sml(1 / tmi, b);
         if (Math.abs(tmi - mi) < 1e-9) break;
         mi = tmi;
       }
-      var q2 = [m0 * iN, m1 * iN, m2 * iN, m3 * iN];
-      var eMq255 = M.dot(M.sml(255, q2), b);
+      var q = [m0 * iN, m1 * iN, m2 * iN, m3 * iN];
+      var eMq255 = M.dot(M.sml(255, q), b);
       return {
         Cov: Rj,
-        q: q2,
+        q,
         e: b,
         L: mi,
         eMq255,
-        eMq: M.dot(b, q2),
-        rgba: (Math.round(255 * q2[3]) << 24 | Math.round(255 * q2[2]) << 16 | Math.round(255 * q2[1]) << 8 | Math.round(255 * q2[0]) << 0) >>> 0
+        eMq: M.dot(b, q),
+        rgba: (Math.round(255 * q[3]) << 24 | Math.round(255 * q[2]) << 16 | Math.round(255 * q[1]) << 8 | Math.round(255 * q[0]) << 0) >>> 0
       };
     };
     UPNG.M4 = {
@@ -29106,13 +29106,13 @@ var require_UPNG = __commonJS({
       var nimg = new Uint8Array(tlen), noff = 0;
       for (var i = 0; i < bufs.length; i++) {
         var img = new Uint8Array(bufs[i]), il = img.length;
-        for (var j2 = 0; j2 < il; j2 += 4) {
-          var r = img[j2], g2 = img[j2 + 1], b = img[j2 + 2], a = img[j2 + 3];
-          if (a == 0) r = g2 = b = 0;
-          nimg[noff + j2] = r;
-          nimg[noff + j2 + 1] = g2;
-          nimg[noff + j2 + 2] = b;
-          nimg[noff + j2 + 3] = a;
+        for (var j = 0; j < il; j += 4) {
+          var r = img[j], g = img[j + 1], b = img[j + 2], a = img[j + 3];
+          if (a == 0) r = g = b = 0;
+          nimg[noff + j] = r;
+          nimg[noff + j + 1] = g;
+          nimg[noff + j + 2] = b;
+          nimg[noff + j + 3] = a;
         }
         noff += il;
       }
@@ -30600,8 +30600,8 @@ var require_LZWStream = __commonJS({
           var estimatedDecodedSize = blockSize * 2;
           var decodedSizeDelta = blockSize;
           var i;
-          var j2;
-          var q2;
+          var j;
+          var q;
           var lzwState = this.lzwState;
           if (!lzwState) {
             return;
@@ -30627,9 +30627,9 @@ var require_LZWStream = __commonJS({
             } else if (code >= 258) {
               if (code < nextCode) {
                 currentSequenceLength = dictionaryLengths[code];
-                for (j2 = currentSequenceLength - 1, q2 = code; j2 >= 0; j2--) {
-                  currentSequence[j2] = dictionaryValues[q2];
-                  q2 = dictionaryPrevCodes[q2];
+                for (j = currentSequenceLength - 1, q = code; j >= 0; j--) {
+                  currentSequence[j] = dictionaryValues[q];
+                  q = dictionaryPrevCodes[q];
                 }
               } else {
                 currentSequence[currentSequenceLength++] = currentSequence[0];
@@ -30659,8 +30659,8 @@ var require_LZWStream = __commonJS({
               } while (estimatedDecodedSize < decodedLength);
               buffer = this.ensureBuffer(this.bufferLength + estimatedDecodedSize);
             }
-            for (j2 = 0; j2 < currentSequenceLength; j2++) {
-              buffer[currentBufferLength++] = currentSequence[j2];
+            for (j = 0; j < currentSequenceLength; j++) {
+              buffer[currentBufferLength++] = currentSequence[j];
             }
           }
           lzwState.nextCode = nextCode;
@@ -32231,9 +32231,9 @@ var require_PDFAcroText = __commonJS({
           return void 0;
         };
         PDFAcroText2.prototype.Q = function() {
-          var q2 = this.dict.lookup(PDFName_1.default.of("Q"));
-          if (q2 instanceof PDFNumber_1.default)
-            return q2;
+          var q = this.dict.lookup(PDFName_1.default.of("Q"));
+          if (q instanceof PDFNumber_1.default)
+            return q;
           return void 0;
         };
         PDFAcroText2.prototype.setMaxLength = function(maxLength) {
@@ -35084,17 +35084,17 @@ var require_operations = __commonJS({
       y -= yScale;
       var ox = xScale * KAPPA;
       var oy = yScale * KAPPA;
-      var xe2 = x + xScale * 2;
-      var ye2 = y + yScale * 2;
+      var xe = x + xScale * 2;
+      var ye = y + yScale * 2;
       var xm = x + xScale;
       var ym = y + yScale;
       return [
         operators_1.pushGraphicsState(),
         operators_1.moveTo(x, ym),
         operators_1.appendBezierCurve(x, ym - oy, xm - ox, y, xm, y),
-        operators_1.appendBezierCurve(xm + ox, y, xe2, ym - oy, xe2, ym),
-        operators_1.appendBezierCurve(xe2, ym + oy, xm + ox, ye2, xm, ye2),
-        operators_1.appendBezierCurve(xm - ox, ye2, x, ym + oy, x, ym),
+        operators_1.appendBezierCurve(xm + ox, y, xe, ym - oy, xe, ym),
+        operators_1.appendBezierCurve(xe, ym + oy, xm + ox, ye, xm, ye),
+        operators_1.appendBezierCurve(xm - ox, ye, x, ym + oy, x, ym),
         operators_1.popGraphicsState()
       ];
     };
@@ -35107,8 +35107,8 @@ var require_operations = __commonJS({
       var y = -yScale;
       var ox = xScale * KAPPA;
       var oy = yScale * KAPPA;
-      var xe2 = x + xScale * 2;
-      var ye2 = y + yScale * 2;
+      var xe = x + xScale * 2;
+      var ye = y + yScale * 2;
       var xm = x + xScale;
       var ym = y + yScale;
       return [
@@ -35116,9 +35116,9 @@ var require_operations = __commonJS({
         operators_1.rotateRadians(rotations_1.toRadians(config.rotate)),
         operators_1.moveTo(x, ym),
         operators_1.appendBezierCurve(x, ym - oy, xm - ox, y, xm, y),
-        operators_1.appendBezierCurve(xm + ox, y, xe2, ym - oy, xe2, ym),
-        operators_1.appendBezierCurve(xe2, ym + oy, xm + ox, ye2, xm, ye2),
-        operators_1.appendBezierCurve(xm - ox, ye2, x, ym + oy, x, ym)
+        operators_1.appendBezierCurve(xm + ox, y, xe, ym - oy, xe, ym),
+        operators_1.appendBezierCurve(xe, ym + oy, xm + ox, ye, xm, ye),
+        operators_1.appendBezierCurve(xm - ox, ye, x, ym + oy, x, ym)
       ];
     };
     exports2.drawEllipse = function(options) {
@@ -37905,8 +37905,8 @@ var require_PDFForm = __commonJS({
           for (var i = 0, lenFields = fields.length; i < lenFields; i++) {
             var field = fields[i];
             var widgets = field.acroField.getWidgets();
-            for (var j2 = 0, lenWidgets = widgets.length; j2 < lenWidgets; j2++) {
-              var widget = widgets[j2];
+            for (var j = 0, lenWidgets = widgets.length; j < lenWidgets; j++) {
+              var widget = widgets[j];
               var page = this.findWidgetPage(widget);
               var widgetRef = this.findWidgetAppearanceRef(field, widget);
               var xObjectKey = page.node.newXObject("FlatWidget", widgetRef);
@@ -40128,7 +40128,7 @@ var require_fontkit_umd = __commonJS({
         var eLen = nBytes * 8 - mLen - 1;
         var eMax = (1 << eLen) - 1;
         var eBias = eMax >> 1;
-        var rt2 = mLen === 23 ? Math.pow(2, -24) - Math.pow(2, -77) : 0;
+        var rt = mLen === 23 ? Math.pow(2, -24) - Math.pow(2, -77) : 0;
         var i2 = isLE ? 0 : nBytes - 1;
         var d = isLE ? 1 : -1;
         var s = value < 0 || value === 0 && 1 / value < 0 ? 1 : 0;
@@ -40143,9 +40143,9 @@ var require_fontkit_umd = __commonJS({
             c *= 2;
           }
           if (e + eBias >= 1) {
-            value += rt2 / c;
+            value += rt / c;
           } else {
-            value += rt2 * Math.pow(2, 1 - eBias);
+            value += rt * Math.pow(2, 1 - eBias);
           }
           if (value * c >= 2) {
             e++;
@@ -40724,8 +40724,8 @@ var require_fontkit_umd = __commonJS({
             if (byteOffset + valLength > arrLength) byteOffset = arrLength - valLength;
             for (i2 = byteOffset; i2 >= 0; i2--) {
               var found = true;
-              for (var j2 = 0; j2 < valLength; j2++) {
-                if (read2(arr, i2 + j2) !== read2(val, j2)) {
+              for (var j = 0; j < valLength; j++) {
+                if (read2(arr, i2 + j) !== read2(val, j)) {
                   found = false;
                   break;
                 }
@@ -41485,8 +41485,8 @@ var require_fontkit_umd = __commonJS({
           var table = new Array(256);
           for (var i2 = 0; i2 < 16; ++i2) {
             var i16 = i2 * 16;
-            for (var j2 = 0; j2 < 16; ++j2) {
-              table[i16 + j2] = alphabet[i2] + alphabet[j2];
+            for (var j = 0; j < 16; ++j) {
+              table[i16 + j] = alphabet[i2] + alphabet[j];
             }
           }
           return table;
@@ -41688,15 +41688,15 @@ var require_fontkit_umd = __commonJS({
       };
       function _onceWrap(target, type, listener) {
         var fired = false;
-        function g2() {
-          target.removeListener(type, g2);
+        function g() {
+          target.removeListener(type, g);
           if (!fired) {
             fired = true;
             listener.apply(target, arguments);
           }
         }
-        g2.listener = listener;
-        return g2;
+        g.listener = listener;
+        return g;
       }
       EventEmitter.prototype.once = function once2(type, listener) {
         if (typeof listener !== "function") throw new TypeError('"listener" argument must be a function');
@@ -41951,9 +41951,9 @@ var require_fontkit_umd = __commonJS({
       var title = "browser";
       var platform = "browser";
       var browser = true;
-      var env3 = {};
+      var env = {};
       var argv = [];
-      var version3 = "";
+      var version2 = "";
       var versions = {};
       var release = {};
       var config = {};
@@ -42006,9 +42006,9 @@ var require_fontkit_umd = __commonJS({
         nextTick,
         title,
         browser,
-        env: env3,
+        env,
         argv,
-        version: version3,
+        version: version2,
         versions,
         on,
         addListener,
@@ -42393,8 +42393,8 @@ var require_fontkit_umd = __commonJS({
       function isUndefined(arg) {
         return arg === void 0;
       }
-      function isRegExp(re2) {
-        return isObject(re2) && objectToString(re2) === "[object RegExp]";
+      function isRegExp(re) {
+        return isObject(re) && objectToString(re) === "[object RegExp]";
       }
       function isObject(arg) {
         return typeof arg === "object" && arg !== null;
@@ -44024,19 +44024,19 @@ var require_fontkit_umd = __commonJS({
       }
       Utf16BEDecoder.prototype.write = function(buf) {
         if (buf.length == 0) return "";
-        var buf2 = Buffer$2.alloc(buf.length + 1), i2 = 0, j2 = 0;
+        var buf2 = Buffer$2.alloc(buf.length + 1), i2 = 0, j = 0;
         if (this.overflowByte !== -1) {
           buf2[0] = buf[0];
           buf2[1] = this.overflowByte;
           i2 = 1;
-          j2 = 2;
+          j = 2;
         }
-        for (; i2 < buf.length - 1; i2 += 2, j2 += 2) {
-          buf2[j2] = buf[i2 + 1];
-          buf2[j2 + 1] = buf[i2];
+        for (; i2 < buf.length - 1; i2 += 2, j += 2) {
+          buf2[j] = buf[i2 + 1];
+          buf2[j + 1] = buf[i2];
         }
         this.overflowByte = i2 == buf.length - 1 ? buf[buf.length - 1] : -1;
-        return buf2.slice(0, j2).toString("ucs2");
+        return buf2.slice(0, j).toString("ucs2");
       };
       Utf16BEDecoder.prototype.end = function() {
       };
@@ -44970,8 +44970,8 @@ var require_fontkit_umd = __commonJS({
         if (codecOptions.encodeSkipVals) for (var i2 = 0; i2 < codecOptions.encodeSkipVals.length; i2++) {
           var val = codecOptions.encodeSkipVals[i2];
           if (typeof val === "number") skipEncodeChars[val] = true;
-          else for (var j2 = val.from; j2 <= val.to; j2++) {
-            skipEncodeChars[j2] = true;
+          else for (var j = val.from; j <= val.to; j++) {
+            skipEncodeChars[j] = true;
           }
         }
         this._fillEncodeTable(0, 0, skipEncodeChars);
@@ -44992,8 +44992,8 @@ var require_fontkit_umd = __commonJS({
           for (var i2 = 129; i2 <= 254; i2++) {
             var secondByteNodeIdx = NODE_START - this.decodeTables[0][i2];
             var secondByteNode = this.decodeTables[secondByteNodeIdx];
-            for (var j2 = 48; j2 <= 57; j2++) {
-              secondByteNode[j2] = NODE_START - thirdByteNodeIdx;
+            for (var j = 48; j <= 57; j++) {
+              secondByteNode[j] = NODE_START - thirdByteNodeIdx;
             }
           }
           for (var i2 = 129; i2 <= 254; i2++) {
@@ -45080,7 +45080,7 @@ var require_fontkit_umd = __commonJS({
           bucket[low] = SEQ_START - this.encodeTableSeq.length;
           this.encodeTableSeq.push(node);
         }
-        for (var j2 = 1; j2 < seq.length - 1; j2++) {
+        for (var j = 1; j < seq.length - 1; j++) {
           var oldVal = node[uCode];
           if (typeof oldVal === "object") node = oldVal;
           else {
@@ -45111,7 +45111,7 @@ var require_fontkit_umd = __commonJS({
         this.gb18030 = codec.gb18030;
       }
       DBCSEncoder.prototype.write = function(str) {
-        var newBuf = Buffer$5.alloc(str.length * (this.gb18030 ? 4 : 3)), leadSurrogate = this.leadSurrogate, seqObj = this.seqObj, nextChar = -1, i2 = 0, j2 = 0;
+        var newBuf = Buffer$5.alloc(str.length * (this.gb18030 ? 4 : 3)), leadSurrogate = this.leadSurrogate, seqObj = this.seqObj, nextChar = -1, i2 = 0, j = 0;
         while (true) {
           if (nextChar === -1) {
             if (i2 == str.length) break;
@@ -45169,53 +45169,53 @@ var require_fontkit_umd = __commonJS({
               var idx = findIdx(this.gb18030.uChars, uCode);
               if (idx != -1) {
                 var dbcsCode = this.gb18030.gbChars[idx] + (uCode - this.gb18030.uChars[idx]);
-                newBuf[j2++] = 129 + Math.floor(dbcsCode / 12600);
+                newBuf[j++] = 129 + Math.floor(dbcsCode / 12600);
                 dbcsCode = dbcsCode % 12600;
-                newBuf[j2++] = 48 + Math.floor(dbcsCode / 1260);
+                newBuf[j++] = 48 + Math.floor(dbcsCode / 1260);
                 dbcsCode = dbcsCode % 1260;
-                newBuf[j2++] = 129 + Math.floor(dbcsCode / 10);
+                newBuf[j++] = 129 + Math.floor(dbcsCode / 10);
                 dbcsCode = dbcsCode % 10;
-                newBuf[j2++] = 48 + dbcsCode;
+                newBuf[j++] = 48 + dbcsCode;
                 continue;
               }
             }
           }
           if (dbcsCode === UNASSIGNED) dbcsCode = this.defaultCharSingleByte;
           if (dbcsCode < 256) {
-            newBuf[j2++] = dbcsCode;
+            newBuf[j++] = dbcsCode;
           } else if (dbcsCode < 65536) {
-            newBuf[j2++] = dbcsCode >> 8;
-            newBuf[j2++] = dbcsCode & 255;
+            newBuf[j++] = dbcsCode >> 8;
+            newBuf[j++] = dbcsCode & 255;
           } else {
-            newBuf[j2++] = dbcsCode >> 16;
-            newBuf[j2++] = dbcsCode >> 8 & 255;
-            newBuf[j2++] = dbcsCode & 255;
+            newBuf[j++] = dbcsCode >> 16;
+            newBuf[j++] = dbcsCode >> 8 & 255;
+            newBuf[j++] = dbcsCode & 255;
           }
         }
         this.seqObj = seqObj;
         this.leadSurrogate = leadSurrogate;
-        return newBuf.slice(0, j2);
+        return newBuf.slice(0, j);
       };
       DBCSEncoder.prototype.end = function() {
         if (this.leadSurrogate === -1 && this.seqObj === void 0) return;
-        var newBuf = Buffer$5.alloc(10), j2 = 0;
+        var newBuf = Buffer$5.alloc(10), j = 0;
         if (this.seqObj) {
           var dbcsCode = this.seqObj[DEF_CHAR];
           if (dbcsCode !== void 0) {
             if (dbcsCode < 256) {
-              newBuf[j2++] = dbcsCode;
+              newBuf[j++] = dbcsCode;
             } else {
-              newBuf[j2++] = dbcsCode >> 8;
-              newBuf[j2++] = dbcsCode & 255;
+              newBuf[j++] = dbcsCode >> 8;
+              newBuf[j++] = dbcsCode & 255;
             }
           }
           this.seqObj = void 0;
         }
         if (this.leadSurrogate !== -1) {
-          newBuf[j2++] = this.defaultCharSingleByte;
+          newBuf[j++] = this.defaultCharSingleByte;
           this.leadSurrogate = -1;
         }
-        return newBuf.slice(0, j2);
+        return newBuf.slice(0, j);
       };
       DBCSEncoder.prototype.findIdx = findIdx;
       function DBCSDecoder(options, codec) {
@@ -45230,7 +45230,7 @@ var require_fontkit_umd = __commonJS({
         var newBuf = Buffer$5.alloc(buf.length * 2), nodeIdx = this.nodeIdx, prevBuf = this.prevBuf, prevBufOffset = this.prevBuf.length, seqStart = -this.prevBuf.length, uCode;
         if (prevBufOffset > 0)
           prevBuf = Buffer$5.concat([prevBuf, buf.slice(0, 10)]);
-        for (var i2 = 0, j2 = 0; i2 < buf.length; i2++) {
+        for (var i2 = 0, j = 0; i2 < buf.length; i2++) {
           var curByte = i2 >= 0 ? buf[i2] : prevBuf[i2 + prevBufOffset];
           var uCode = this.decodeTables[nodeIdx][curByte];
           if (uCode >= 0) ;
@@ -45249,26 +45249,26 @@ var require_fontkit_umd = __commonJS({
             var seq = this.decodeTableSeq[SEQ_START - uCode];
             for (var k = 0; k < seq.length - 1; k++) {
               uCode = seq[k];
-              newBuf[j2++] = uCode & 255;
-              newBuf[j2++] = uCode >> 8;
+              newBuf[j++] = uCode & 255;
+              newBuf[j++] = uCode >> 8;
             }
             uCode = seq[seq.length - 1];
           } else throw new Error("iconv-lite internal error: invalid decoding table value " + uCode + " at " + nodeIdx + "/" + curByte);
           if (uCode > 65535) {
             uCode -= 65536;
             var uCodeLead = 55296 + Math.floor(uCode / 1024);
-            newBuf[j2++] = uCodeLead & 255;
-            newBuf[j2++] = uCodeLead >> 8;
+            newBuf[j++] = uCodeLead & 255;
+            newBuf[j++] = uCodeLead >> 8;
             uCode = 56320 + uCode % 1024;
           }
-          newBuf[j2++] = uCode & 255;
-          newBuf[j2++] = uCode >> 8;
+          newBuf[j++] = uCode & 255;
+          newBuf[j++] = uCode >> 8;
           nodeIdx = 0;
           seqStart = i2 + 1;
         }
         this.nodeIdx = nodeIdx;
         this.prevBuf = seqStart >= 0 ? buf.slice(seqStart) : prevBuf.slice(seqStart + prevBufOffset);
-        return newBuf.slice(0, j2).toString("ucs2");
+        return newBuf.slice(0, j).toString("ucs2");
       };
       DBCSDecoder.prototype.end = function() {
         var ret = "";
@@ -55112,10 +55112,10 @@ var require_fontkit_umd = __commonJS({
                 }, parent);
               }
             };
-            VersionedStruct3.prototype.versionSetter = function(parent, version4) {
+            VersionedStruct3.prototype.versionSetter = function(parent, version3) {
               if (typeof this.type === "string") {
                 return this.type.split(".").reduce(function(obj, prop) {
-                  return obj[prop] = version4;
+                  return obj[prop] = version3;
                 }, parent);
               }
             };
@@ -56489,8 +56489,8 @@ var require_fontkit_umd = __commonJS({
           return ctx ? ctx.version : -1;
         };
         _proto.decode = function decode2(stream, parent) {
-          var version4 = this.getCFFVersion(parent);
-          var count = version4 >= 2 ? stream.readUInt32BE() : stream.readUInt16BE();
+          var version3 = this.getCFFVersion(parent);
+          var count = version3 >= 2 ? stream.readUInt32BE() : stream.readUInt16BE();
           if (count === 0) {
             return [];
           }
@@ -56693,8 +56693,8 @@ var require_fontkit_umd = __commonJS({
             }
           }
           if (isArguments2 && object.length > 0) {
-            for (var j2 = 0; j2 < object.length; ++j2) {
-              theKeys.push(String(j2));
+            for (var j = 0; j < object.length; ++j) {
+              theKeys.push(String(j));
             }
           } else {
             for (var name in object) {
@@ -59517,7 +59517,7 @@ var require_fontkit_umd = __commonJS({
           lookupType = restructure.uint16;
         }
         var ClassLookupTable = new restructure.Struct({
-          version: function version4() {
+          version: function version3() {
             return 8;
           },
           // simulate LookupTable
@@ -60214,17 +60214,17 @@ var require_fontkit_umd = __commonJS({
                 var rangeOffset = cmap2.idRangeOffset.get(_i2);
                 var delta = cmap2.idDelta.get(_i2);
                 for (var c = start; c <= end; c++) {
-                  var g2 = 0;
+                  var g = 0;
                   if (rangeOffset === 0) {
-                    g2 = c + delta;
+                    g = c + delta;
                   } else {
                     var index = rangeOffset / 2 + (c - start) - (cmap2.segCount - _i2);
-                    g2 = cmap2.glyphIndexArray.get(index) || 0;
-                    if (g2 !== 0) {
-                      g2 += delta;
+                    g = cmap2.glyphIndexArray.get(index) || 0;
+                    if (g !== 0) {
+                      g += delta;
                     }
                   }
-                  if (g2 === gid) {
+                  if (g === gid) {
                     _res2.push(c);
                   }
                 }
@@ -60398,7 +60398,7 @@ var require_fontkit_umd = __commonJS({
           sum += 1 << bits2[i2];
         }
       }
-      function tinf_build_fixed_trees(lt, dt2) {
+      function tinf_build_fixed_trees(lt, dt) {
         var i2;
         for (i2 = 0; i2 < 7; ++i2) {
           lt.table[i2] = 0;
@@ -60419,11 +60419,11 @@ var require_fontkit_umd = __commonJS({
           lt.trans[24 + 144 + 8 + i2] = 144 + i2;
         }
         for (i2 = 0; i2 < 5; ++i2) {
-          dt2.table[i2] = 0;
+          dt.table[i2] = 0;
         }
-        dt2.table[5] = 32;
+        dt.table[5] = 32;
         for (i2 = 0; i2 < 32; ++i2) {
-          dt2.trans[i2] = i2;
+          dt.trans[i2] = i2;
         }
       }
       var offs = new Uint16Array(16);
@@ -60482,7 +60482,7 @@ var require_fontkit_umd = __commonJS({
         d.bitcount -= len2;
         return t2.trans[sum + cur];
       }
-      function tinf_decode_trees(d, lt, dt2) {
+      function tinf_decode_trees(d, lt, dt) {
         var hlit, hdist, hclen;
         var i2, num, length;
         hlit = tinf_read_bits(d, 5, 257);
@@ -60521,9 +60521,9 @@ var require_fontkit_umd = __commonJS({
           }
         }
         tinf_build_tree(lt, lengths, 0, hlit);
-        tinf_build_tree(dt2, lengths, hlit, hdist);
+        tinf_build_tree(dt, lengths, hlit, hdist);
       }
-      function tinf_inflate_block_data(d, lt, dt2) {
+      function tinf_inflate_block_data(d, lt, dt) {
         while (1) {
           var sym = tinf_decode_symbol(d, lt);
           if (sym === 256) {
@@ -60536,7 +60536,7 @@ var require_fontkit_umd = __commonJS({
             var i2;
             sym -= 257;
             length = tinf_read_bits(d, length_bits[sym], length_base[sym]);
-            dist = tinf_decode_symbol(d, dt2);
+            dist = tinf_decode_symbol(d, dt);
             offs2 = d.destLen - tinf_read_bits(d, dist_bits[dist], dist_base[dist]);
             for (i2 = offs2; i2 < offs2 + length; ++i2) {
               d.dest[d.destLen++] = d.dest[i2];
@@ -61058,17 +61058,17 @@ var require_fontkit_umd = __commonJS({
       }
       function pqdownheap(s, tree, k) {
         var v2 = s.heap[k];
-        var j2 = k << 1;
-        while (j2 <= s.heap_len) {
-          if (j2 < s.heap_len && smaller(tree, s.heap[j2 + 1], s.heap[j2], s.depth)) {
-            j2++;
+        var j = k << 1;
+        while (j <= s.heap_len) {
+          if (j < s.heap_len && smaller(tree, s.heap[j + 1], s.heap[j], s.depth)) {
+            j++;
           }
-          if (smaller(tree, v2, s.heap[j2], s.depth)) {
+          if (smaller(tree, v2, s.heap[j], s.depth)) {
             break;
           }
-          s.heap[k] = s.heap[j2];
-          k = j2;
-          j2 <<= 1;
+          s.heap[k] = s.heap[j];
+          k = j;
+          j <<= 1;
         }
         s.heap[k] = v2;
       }
@@ -62515,8 +62515,8 @@ var require_fontkit_umd = __commonJS({
         STR_APPLY_UIA_OK = false;
       }
       var _utf8len = new common.Buf8(256);
-      for (var q2 = 0; q2 < 256; q2++) {
-        _utf8len[q2] = q2 >= 252 ? 6 : q2 >= 248 ? 5 : q2 >= 240 ? 4 : q2 >= 224 ? 3 : q2 >= 192 ? 2 : 1;
+      for (var q = 0; q < 256; q++) {
+        _utf8len[q] = q >= 252 ? 6 : q >= 248 ? 5 : q >= 240 ? 4 : q >= 224 ? 3 : q >= 192 ? 2 : 1;
       }
       _utf8len[254] = _utf8len[254] = 1;
       var string2buf = function string2buf2(str) {
@@ -63384,8 +63384,8 @@ var require_fontkit_umd = __commonJS({
       var ENOUGH_DISTS$1 = 592;
       var MAX_WBITS$1 = 15;
       var DEF_WBITS = MAX_WBITS$1;
-      function zswap32(q3) {
-        return (q3 >>> 24 & 255) + (q3 >>> 8 & 65280) + ((q3 & 65280) << 8) + ((q3 & 255) << 24);
+      function zswap32(q2) {
+        return (q2 >>> 24 & 255) + (q2 >>> 8 & 65280) + ((q2 & 65280) << 8) + ((q2 & 255) << 24);
       }
       function InflateState() {
         this.mode = 0;
@@ -66051,12 +66051,12 @@ var require_fontkit_umd = __commonJS({
         OTMapping["cv" + ("00" + i$3).slice(-2)] = [features.characterAlternatives.code, i$3];
       }
       var AATMapping = {};
-      for (var ot2 in OTMapping) {
-        var aat = OTMapping[ot2];
+      for (var ot in OTMapping) {
+        var aat = OTMapping[ot];
         if (AATMapping[aat[0]] == null) {
           AATMapping[aat[0]] = {};
         }
-        AATMapping[aat[0]][aat[1]] = ot2;
+        AATMapping[aat[0]][aat[1]] = ot;
       }
       function mapOTToAAT(features2) {
         var res = {};
@@ -66673,8 +66673,8 @@ var require_fontkit_umd = __commonJS({
                 glyphs: glyphs.slice(),
                 ligatureStack: _this.ligatureStack.slice()
               });
-              var g2 = _this.font.getGlyph(glyph2);
-              input.push(g2);
+              var g = _this.font.getGlyph(glyph2);
+              input.push(g);
               glyphs.push(input[input.length - 1]);
               process3(glyphs[glyphs.length - 1], entry, glyphs.length - 1);
               var count = 0;
@@ -66686,8 +66686,8 @@ var require_fontkit_umd = __commonJS({
                 }
               }
               if (count === 1) {
-                var result = input.map(function(g3) {
-                  return g3.id;
+                var result = input.map(function(g2) {
+                  return g2.id;
                 });
                 var _cache = _this.inputCache[found];
                 if (_cache) {
@@ -67750,7 +67750,7 @@ var require_fontkit_umd = __commonJS({
       };
       var X = 0;
       var L = 1;
-      var V2 = 2;
+      var V = 2;
       var T = 3;
       var LV = 4;
       var LVT = 5;
@@ -67760,7 +67760,7 @@ var require_fontkit_umd = __commonJS({
           return L;
         }
         if (isV(code2)) {
-          return V2;
+          return V;
         }
         if (isT(code2)) {
           return T;
@@ -67830,7 +67830,7 @@ var require_fontkit_umd = __commonJS({
           lv = prev;
           tjmo = glyph2;
         } else {
-          if (type === V2) {
+          if (type === V) {
             ljmo = glyphs[i2 - 1];
             vjmo = glyph2;
           } else {
@@ -67848,7 +67848,7 @@ var require_fontkit_umd = __commonJS({
         if (lv != null && (t2 === T_BASE || isCombiningT(t2))) {
           var s = lv + (t2 - T_BASE);
           if (font.hasGlyphForCodePoint(s)) {
-            var del = prevType === V2 ? 3 : 2;
+            var del = prevType === V ? 3 : 2;
             glyphs.splice(i2 - del + 1, del, getGlyph(font, s, glyph2.features));
             return i2 - del + 1;
           }
@@ -67873,7 +67873,7 @@ var require_fontkit_umd = __commonJS({
           case LV:
           case LVT:
             return 1;
-          case V2:
+          case V:
             return 2;
           case T:
             return 3;
@@ -68254,8 +68254,8 @@ var require_fontkit_umd = __commonJS({
             var d = INDIC_DECOMPOSITIONS[codepoint] || decompositions[codepoint];
             if (d) {
               var decomposed = d.map(function(c) {
-                var g2 = plan.font.glyphForCodePoint(c);
-                return new GlyphInfo(plan.font, g2.id, [c], glyphs[i3].features);
+                var g = plan.font.glyphForCodePoint(c);
+                return new GlyphInfo(plan.font, g.id, [c], glyphs[i3].features);
               });
               glyphs.splice.apply(glyphs, [i3, 1].concat(decomposed));
             }
@@ -68352,13 +68352,13 @@ var require_fontkit_umd = __commonJS({
             continue;
           }
           if (syllableType === "broken_cluster" && dottedCircle) {
-            var g2 = new GlyphInfo(font, dottedCircle, [9676]);
-            g2.shaperInfo = new IndicInfo(1 << indicCategory(g2), indicPosition(g2), glyphs[start].shaperInfo.syllableType, glyphs[start].shaperInfo.syllable);
+            var g = new GlyphInfo(font, dottedCircle, [9676]);
+            g.shaperInfo = new IndicInfo(1 << indicCategory(g), indicPosition(g), glyphs[start].shaperInfo.syllableType, glyphs[start].shaperInfo.syllable);
             var _i3 = start;
             while (_i3 < end && glyphs[_i3].shaperInfo.category === CATEGORIES.Repha) {
               _i3++;
             }
-            glyphs.splice(_i3++, 0, g2);
+            glyphs.splice(_i3++, 0, g);
             end++;
           }
           var base = end;
@@ -68424,9 +68424,9 @@ var require_fontkit_umd = __commonJS({
           }
           for (var _i7 = base + 1; _i7 < end; _i7++) {
             if (glyphs[_i7].shaperInfo.category === CATEGORIES.M) {
-              for (var j2 = _i7 + 1; j2 < end; j2++) {
-                if (isConsonant(glyphs[j2])) {
-                  glyphs[j2].shaperInfo.position = POSITIONS.Final_C;
+              for (var j = _i7 + 1; j < end; j++) {
+                if (isConsonant(glyphs[j])) {
+                  glyphs[j].shaperInfo.position = POSITIONS.Final_C;
                   break;
                 }
               }
@@ -68707,8 +68707,8 @@ var require_fontkit_umd = __commonJS({
                     }
                     if (_newPos > start && glyphs[_newPos - 1].shaperInfo.category === CATEGORIES.M) {
                       var _oldPos2 = _i21;
-                      for (var j2 = base + 1; j2 < _oldPos2; j2++) {
-                        if (glyphs[j2].shaperInfo.category === CATEGORIES.M) {
+                      for (var j = base + 1; j < _oldPos2; j++) {
+                        if (glyphs[j].shaperInfo.category === CATEGORIES.M) {
                           _newPos--;
                           break;
                         }
@@ -68813,8 +68813,8 @@ var require_fontkit_umd = __commonJS({
             var codepoint = glyphs[i3].codePoints[0];
             if (decompositions$1[codepoint]) {
               var decomposed = decompositions$1[codepoint].map(function(c) {
-                var g2 = plan.font.glyphForCodePoint(c);
-                return new GlyphInfo(plan.font, g2.id, [c], glyphs[i3].features);
+                var g = plan.font.glyphForCodePoint(c);
+                return new GlyphInfo(plan.font, g.id, [c], glyphs[i3].features);
               });
               glyphs.splice.apply(glyphs, [i3, 1].concat(decomposed));
             }
@@ -68873,18 +68873,18 @@ var require_fontkit_umd = __commonJS({
       function reorder(font, glyphs) {
         var dottedCircle = font.glyphForCodePoint(9676).id;
         for (var start = 0, end = nextSyllable$1(glyphs, 0); start < glyphs.length; start = end, end = nextSyllable$1(glyphs, start)) {
-          var i2 = void 0, j2 = void 0;
+          var i2 = void 0, j = void 0;
           var info = glyphs[start].shaperInfo;
           var type = info.syllableType;
           if (type !== "virama_terminated_cluster" && type !== "standard_cluster" && type !== "broken_cluster") {
             continue;
           }
           if (type === "broken_cluster" && dottedCircle) {
-            var g2 = new GlyphInfo(font, dottedCircle, [9676]);
-            g2.shaperInfo = info;
+            var g = new GlyphInfo(font, dottedCircle, [9676]);
+            g.shaperInfo = info;
             for (i2 = start; i2 < end && glyphs[i2].shaperInfo.category === "R"; i2++) {
             }
-            glyphs.splice(++i2, 0, g2);
+            glyphs.splice(++i2, 0, g);
             end++;
           }
           if (info.category === "R" && end - start > 1) {
@@ -68899,12 +68899,12 @@ var require_fontkit_umd = __commonJS({
               }
             }
           }
-          for (i2 = start, j2 = end; i2 < end; i2++) {
+          for (i2 = start, j = end; i2 < end; i2++) {
             info = glyphs[i2].shaperInfo;
             if (isBase(info) || isHalant(glyphs[i2])) {
-              j2 = isHalant(glyphs[i2]) ? i2 + 1 : i2;
-            } else if ((info.category === "VPre" || info.category === "VMPre") && j2 < i2) {
-              glyphs.splice.apply(glyphs, [j2, 1, glyphs[i2]].concat(glyphs.splice(j2, i2 - j2)));
+              j = isHalant(glyphs[i2]) ? i2 + 1 : i2;
+            } else if ((info.category === "VPre" || info.category === "VMPre") && j < i2) {
+              glyphs.splice.apply(glyphs, [j, 1, glyphs[i2]].concat(glyphs.splice(j, i2 - j)));
             }
           }
         }
@@ -69560,26 +69560,26 @@ var require_fontkit_umd = __commonJS({
         _proto.fixCursiveAttachment = function fixCursiveAttachment(i2) {
           var glyph2 = this.glyphs[i2];
           if (glyph2.cursiveAttachment != null) {
-            var j2 = glyph2.cursiveAttachment;
+            var j = glyph2.cursiveAttachment;
             glyph2.cursiveAttachment = null;
-            this.fixCursiveAttachment(j2);
-            this.positions[i2].yOffset += this.positions[j2].yOffset;
+            this.fixCursiveAttachment(j);
+            this.positions[i2].yOffset += this.positions[j].yOffset;
           }
         };
         _proto.fixMarkAttachment = function fixMarkAttachment() {
           for (var i2 = 0; i2 < this.glyphs.length; i2++) {
             var glyph2 = this.glyphs[i2];
             if (glyph2.markAttachment != null) {
-              var j2 = glyph2.markAttachment;
-              this.positions[i2].xOffset += this.positions[j2].xOffset;
-              this.positions[i2].yOffset += this.positions[j2].yOffset;
+              var j = glyph2.markAttachment;
+              this.positions[i2].xOffset += this.positions[j].xOffset;
+              this.positions[i2].yOffset += this.positions[j].yOffset;
               if (this.direction === "ltr") {
-                for (var k = j2; k < i2; k++) {
+                for (var k = j; k < i2; k++) {
                   this.positions[i2].xOffset -= this.positions[k].xAdvance;
                   this.positions[i2].yOffset -= this.positions[k].yAdvance;
                 }
               } else {
-                for (var _k = j2 + 1; _k < i2 + 1; _k++) {
+                for (var _k = j + 1; _k < i2 + 1; _k++) {
                   this.positions[i2].xOffset += this.positions[_k].xAdvance;
                   this.positions[i2].yOffset += this.positions[_k].yAdvance;
                 }
@@ -70402,7 +70402,7 @@ var require_fontkit_umd = __commonJS({
             flags.push(flag);
             if (flag & REPEAT) {
               var count = stream.readUInt8();
-              for (var j2 = 0; j2 < count; j2++) {
+              for (var j = 0; j < count; j++) {
                 flags.push(flag);
               }
             }
@@ -70468,8 +70468,8 @@ var require_fontkit_umd = __commonJS({
           }
           if (this._font._variationProcessor) {
             var points = [];
-            for (var j2 = 0; j2 < glyph2.components.length; j2++) {
-              var component = glyph2.components[j2];
+            for (var j = 0; j < glyph2.components.length; j++) {
+              var component = glyph2.components[j];
               points.push(new Point(true, true, component.dx, component.dy));
             }
             points.push.apply(points, this._getPhantomPoints(glyph2));
@@ -70503,8 +70503,8 @@ var require_fontkit_umd = __commonJS({
               var _contours = this._font.getGlyph(component.glyphID)._getContours();
               for (var i2 = 0; i2 < _contours.length; i2++) {
                 var contour = _contours[i2];
-                for (var j2 = 0; j2 < contour.length; j2++) {
-                  var _point = contour[j2];
+                for (var j = 0; j < contour.length; j++) {
+                  var _point = contour[j];
                   var x = _point.x * component.scaleX + _point.y * component.scale01 + component.dx;
                   var y = _point.y * component.scaleY + _point.x * component.scale10 + component.dy;
                   points.push(new Point(_point.onCurve, _point.endContour, x, y));
@@ -70563,20 +70563,20 @@ var require_fontkit_umd = __commonJS({
               var curvePt = firstPt;
             }
             path2.moveTo(firstPt.x, firstPt.y);
-            for (var j2 = start; j2 < contour.length; j2++) {
-              var pt2 = contour[j2];
-              var prevPt = j2 === 0 ? firstPt : contour[j2 - 1];
-              if (prevPt.onCurve && pt2.onCurve) {
-                path2.lineTo(pt2.x, pt2.y);
-              } else if (prevPt.onCurve && !pt2.onCurve) {
-                var curvePt = pt2;
-              } else if (!prevPt.onCurve && !pt2.onCurve) {
-                var midX = (prevPt.x + pt2.x) / 2;
-                var midY = (prevPt.y + pt2.y) / 2;
+            for (var j = start; j < contour.length; j++) {
+              var pt = contour[j];
+              var prevPt = j === 0 ? firstPt : contour[j - 1];
+              if (prevPt.onCurve && pt.onCurve) {
+                path2.lineTo(pt.x, pt.y);
+              } else if (prevPt.onCurve && !pt.onCurve) {
+                var curvePt = pt;
+              } else if (!prevPt.onCurve && !pt.onCurve) {
+                var midX = (prevPt.x + pt.x) / 2;
+                var midY = (prevPt.y + pt.y) / 2;
                 path2.quadraticCurveTo(prevPt.x, prevPt.y, midX, midY);
-                var curvePt = pt2;
-              } else if (!prevPt.onCurve && pt2.onCurve) {
-                path2.quadraticCurveTo(curvePt.x, curvePt.y, pt2.x, pt2.y);
+                var curvePt = pt;
+              } else if (!prevPt.onCurve && pt.onCurve) {
+                path2.quadraticCurveTo(curvePt.x, curvePt.y, pt.x, pt.y);
                 var curvePt = null;
               } else {
                 throw new Error("Unknown TTF path state");
@@ -70763,8 +70763,8 @@ var require_fontkit_umd = __commonJS({
                     var base = delta - numBlends;
                     for (var i2 = 0; i2 < numBlends; i2++) {
                       var sum = stack[base + i2];
-                      for (var j2 = 0; j2 < blendVector.length; j2++) {
-                        sum += blendVector[j2] * stack[delta++];
+                      for (var j = 0; j < blendVector.length; j++) {
+                        sum += blendVector[j] * stack[delta++];
                       }
                       stack[base + i2] = sum;
                     }
@@ -71248,21 +71248,21 @@ var require_fontkit_umd = __commonJS({
               }
             }
             if (baseLayer == null) {
-              var g2 = this._font._getBaseGlyph(this.id);
+              var g = this._font._getBaseGlyph(this.id);
               var color = {
                 red: 0,
                 green: 0,
                 blue: 0,
                 alpha: 255
               };
-              return [new COLRLayer(g2, color)];
+              return [new COLRLayer(g, color)];
             }
             var layers = [];
             for (var i2 = baseLayer.firstLayerIndex; i2 < baseLayer.firstLayerIndex + baseLayer.numLayers; i2++) {
               var rec = colr.layerRecords[i2];
               var color = cpal.colorRecords[rec.paletteIndex];
-              var g2 = this._font._getBaseGlyph(rec.gid);
-              layers.push(new COLRLayer(g2, color));
+              var g = this._font._getBaseGlyph(rec.gid);
+              layers.push(new COLRLayer(g, color));
             }
             return layers;
           }
@@ -71300,10 +71300,10 @@ var require_fontkit_umd = __commonJS({
           if (this.font.avar) {
             for (var i2 = 0; i2 < this.font.avar.segment.length; i2++) {
               var segment = this.font.avar.segment[i2];
-              for (var j2 = 0; j2 < segment.correspondence.length; j2++) {
-                var pair = segment.correspondence[j2];
-                if (j2 >= 1 && normalized[i2] < pair.fromCoord) {
-                  var prev = segment.correspondence[j2 - 1];
+              for (var j = 0; j < segment.correspondence.length; j++) {
+                var pair = segment.correspondence[j];
+                if (j >= 1 && normalized[i2] < pair.fromCoord) {
+                  var prev = segment.correspondence[j - 1];
                   normalized[i2] = ((normalized[i2] - prev.fromCoord) * (pair.toCoord - prev.toCoord) + Number.EPSILON) / (pair.fromCoord - prev.fromCoord + Number.EPSILON) + prev.toCoord;
                   break;
                 }
@@ -71338,8 +71338,8 @@ var require_fontkit_umd = __commonJS({
             offsetToData = stream.pos;
             stream.pos = here;
           }
-          var origPoints = glyphPoints.map(function(pt2) {
-            return pt2.copy();
+          var origPoints = glyphPoints.map(function(pt) {
+            return pt.copy();
           });
           tupleCount &= TUPLE_COUNT_MASK;
           for (var i2 = 0; i2 < tupleCount; i2++) {
@@ -71388,8 +71388,8 @@ var require_fontkit_umd = __commonJS({
                 point.y += Math.round(yDeltas[_i2] * factor);
               }
             } else {
-              var outPoints = origPoints.map(function(pt2) {
-                return pt2.copy();
+              var outPoints = origPoints.map(function(pt) {
+                return pt.copy();
               });
               var hasDelta = glyphPoints.map(function() {
                 return false;
@@ -71428,7 +71428,7 @@ var require_fontkit_umd = __commonJS({
             var run = stream.readUInt8();
             var runCount = (run & POINT_RUN_COUNT_MASK) + 1;
             var fn = run & POINTS_ARE_WORDS ? stream.readUInt16 : stream.readUInt8;
-            for (var j2 = 0; j2 < runCount && i2 < count; j2++) {
+            for (var j = 0; j < runCount && i2 < count; j++) {
               point += fn.call(stream);
               points[i2++] = point;
             }
@@ -71446,7 +71446,7 @@ var require_fontkit_umd = __commonJS({
               i2 += runCount;
             } else {
               var fn = run & DELTAS_ARE_WORDS ? stream.readInt16BE : stream.readInt8;
-              for (var j2 = 0; j2 < runCount && i2 < count; j2++) {
+              for (var j = 0; j < runCount && i2 < count; j++) {
                 deltas[i2++] = fn.call(stream);
               }
             }
@@ -71489,9 +71489,9 @@ var require_fontkit_umd = __commonJS({
           while (point < points.length) {
             var firstPoint = point;
             var endPoint = point;
-            var pt2 = points[endPoint];
-            while (!pt2.endContour) {
-              pt2 = points[++endPoint];
+            var pt = points[endPoint];
+            while (!pt.endContour) {
+              pt = points[++endPoint];
             }
             while (point <= endPoint && !hasDelta[point]) {
               point++;
@@ -71609,8 +71609,8 @@ var require_fontkit_umd = __commonJS({
             var scalar = 1;
             var regionIndex = varData.regionIndexes[master];
             var axes = itemStore.variationRegionList.variationRegions[regionIndex];
-            for (var j2 = 0; j2 < axes.length; j2++) {
-              var axis = axes[j2];
+            for (var j = 0; j < axes.length; j++) {
+              var axis = axes[j];
               var axisScalar = void 0;
               if (axis.startCoord > axis.peakCoord || axis.peakCoord > axis.endCoord) {
                 axisScalar = 1;
@@ -71618,15 +71618,15 @@ var require_fontkit_umd = __commonJS({
                 axisScalar = 1;
               } else if (axis.peakCoord === 0) {
                 axisScalar = 1;
-              } else if (normalizedCoords[j2] < axis.startCoord || normalizedCoords[j2] > axis.endCoord) {
+              } else if (normalizedCoords[j] < axis.startCoord || normalizedCoords[j] > axis.endCoord) {
                 axisScalar = 0;
               } else {
-                if (normalizedCoords[j2] === axis.peakCoord) {
+                if (normalizedCoords[j] === axis.peakCoord) {
                   axisScalar = 1;
-                } else if (normalizedCoords[j2] < axis.peakCoord) {
-                  axisScalar = (normalizedCoords[j2] - axis.startCoord + Number.EPSILON) / (axis.peakCoord - axis.startCoord + Number.EPSILON);
+                } else if (normalizedCoords[j] < axis.peakCoord) {
+                  axisScalar = (normalizedCoords[j] - axis.startCoord + Number.EPSILON) / (axis.peakCoord - axis.startCoord + Number.EPSILON);
                 } else {
-                  axisScalar = (axis.endCoord - normalizedCoords[j2] + Number.EPSILON) / (axis.endCoord - axis.peakCoord + Number.EPSILON);
+                  axisScalar = (axis.endCoord - normalizedCoords[j] + Number.EPSILON) / (axis.endCoord - axis.peakCoord + Number.EPSILON);
                 }
               }
               scalar *= axisScalar;
@@ -71730,11 +71730,11 @@ var require_fontkit_umd = __commonJS({
             return typeof o === "object" && __objToStr(o) === "[object RegExp]";
           }
           clone2.__isRegExp = __isRegExp;
-          function __getRegExpFlags(re2) {
+          function __getRegExpFlags(re) {
             var flags = "";
-            if (re2.global) flags += "g";
-            if (re2.ignoreCase) flags += "i";
-            if (re2.multiline) flags += "m";
+            if (re.global) flags += "g";
+            if (re.ignoreCase) flags += "i";
+            if (re.multiline) flags += "m";
             return flags;
           }
           clone2.__getRegExpFlags = __getRegExpFlags;
@@ -71824,11 +71824,11 @@ var require_fontkit_umd = __commonJS({
           var pointCount = 0;
           for (var i2 = 0; i2 < path2.commands.length; i2++) {
             var c = path2.commands[i2];
-            for (var j2 = 0; j2 < c.args.length; j2 += 2) {
-              var x = c.args[j2];
-              var y = c.args[j2 + 1];
+            for (var j = 0; j < c.args.length; j += 2) {
+              var x = c.args[j];
+              var y = c.args[j + 1];
               var flag = 0;
-              if (c.command === "quadraticCurveTo" && j2 === 2) {
+              if (c.command === "quadraticCurveTo" && j === 2) {
                 var next = path2.commands[i2 + 1];
                 if (next && next.command === "quadraticCurveTo") {
                   var midX = (lastX + next.args[0]) / 2;
@@ -71838,7 +71838,7 @@ var require_fontkit_umd = __commonJS({
                   }
                 }
               }
-              if (!(c.command === "quadraticCurveTo" && j2 === 0)) {
+              if (!(c.command === "quadraticCurveTo" && j === 0)) {
                 flag |= ON_CURVE$1;
               }
               flag = this._encodePoint(x, lastX, xPoints, flag, X_SHORT_VECTOR$1, SAME_X$1);
@@ -72780,7 +72780,7 @@ var require_fontkit_umd = __commonJS({
           sum += 1 << bits2[i2];
         }
       }
-      function tinf_build_fixed_trees$1(lt, dt2) {
+      function tinf_build_fixed_trees$1(lt, dt) {
         var i2;
         for (i2 = 0; i2 < 7; ++i2) {
           lt.table[i2] = 0;
@@ -72801,11 +72801,11 @@ var require_fontkit_umd = __commonJS({
           lt.trans[24 + 144 + 8 + i2] = 144 + i2;
         }
         for (i2 = 0; i2 < 5; ++i2) {
-          dt2.table[i2] = 0;
+          dt.table[i2] = 0;
         }
-        dt2.table[5] = 32;
+        dt.table[5] = 32;
         for (i2 = 0; i2 < 32; ++i2) {
-          dt2.trans[i2] = i2;
+          dt.trans[i2] = i2;
         }
       }
       var offs$1 = new Uint16Array(16);
@@ -72864,7 +72864,7 @@ var require_fontkit_umd = __commonJS({
         d.bitcount -= len2;
         return t2.trans[sum + cur];
       }
-      function tinf_decode_trees$1(d, lt, dt2) {
+      function tinf_decode_trees$1(d, lt, dt) {
         var hlit, hdist, hclen;
         var i2, num, length;
         hlit = tinf_read_bits$1(d, 5, 257);
@@ -72903,9 +72903,9 @@ var require_fontkit_umd = __commonJS({
           }
         }
         tinf_build_tree$1(lt, lengths$1, 0, hlit);
-        tinf_build_tree$1(dt2, lengths$1, hlit, hdist);
+        tinf_build_tree$1(dt, lengths$1, hlit, hdist);
       }
-      function tinf_inflate_block_data$1(d, lt, dt2) {
+      function tinf_inflate_block_data$1(d, lt, dt) {
         while (1) {
           var sym = tinf_decode_symbol$1(d, lt);
           if (sym === 256) {
@@ -72918,7 +72918,7 @@ var require_fontkit_umd = __commonJS({
             var i2;
             sym -= 257;
             length = tinf_read_bits$1(d, length_bits$1[sym], length_base$1[sym]);
-            dist = tinf_decode_symbol$1(d, dt2);
+            dist = tinf_decode_symbol$1(d, dt);
             offs2 = d.destLen - tinf_read_bits$1(d, dist_bits$1[dist], dist_base$1[dist]);
             for (i2 = offs2; i2 < offs2 + length; ++i2) {
               d.dest[d.destLen++] = d.dest[i2];
@@ -75850,7 +75850,7 @@ var require_fontkit_umd = __commonJS({
             var distance_code;
             var distance;
             var context$1;
-            var j2;
+            var j;
             var copy_dst;
             br.readMoreInput();
             if (block_length[1] === 0) {
@@ -75873,7 +75873,7 @@ var require_fontkit_umd = __commonJS({
             copy_length = prefix.kCopyLengthPrefixCode[copy_code].offset + br.readBits(prefix.kCopyLengthPrefixCode[copy_code].nbits);
             prev_byte1 = ringbuffer[pos - 1 & ringbuffer_mask];
             prev_byte2 = ringbuffer[pos - 2 & ringbuffer_mask];
-            for (j2 = 0; j2 < insert_length; ++j2) {
+            for (j = 0; j < insert_length; ++j) {
               br.readMoreInput();
               if (block_length[0] === 0) {
                 DecodeBlockType(num_block_types[0], block_type_trees, 0, block_type, block_type_rb, block_type_rb_index, br);
@@ -75966,7 +75966,7 @@ var require_fontkit_umd = __commonJS({
               if (copy_length > meta_block_remaining_len) {
                 throw new Error("Invalid backward reference. pos: " + pos + " distance: " + distance + " len: " + copy_length + " bytes left: " + meta_block_remaining_len);
               }
-              for (j2 = 0; j2 < copy_length; ++j2) {
+              for (j = 0; j < copy_length; ++j) {
                 ringbuffer[pos & ringbuffer_mask] = ringbuffer[pos - distance & ringbuffer_mask];
                 if ((pos & ringbuffer_mask) === ringbuffer_mask) {
                   output.write(ringbuffer, ringbuffer_size);
@@ -76013,7 +76013,7 @@ var require_fontkit_umd = __commonJS({
         decode: function decode2(stream) {
           var result = 0;
           var iterable = [0, 1, 2, 3, 4];
-          for (var j2 = 0; j2 < iterable.length; j2++) {
+          for (var j = 0; j < iterable.length; j++) {
             var code2 = stream.readUInt8();
             if (result & 3758096384) {
               throw new Error("Overflow");
@@ -76512,2022 +76512,25 @@ var import_obsidian2 = require("obsidian");
 // src/blanq-view.ts
 var import_obsidian = require("obsidian");
 
-// node_modules/onnxruntime-web/dist/ort.node.min.mjs
-var import_module = require("module");
-
-// node_modules/onnxruntime-common/dist/esm/backend-impl.js
-var backends = /* @__PURE__ */ new Map();
-var backendsSortedByPriority = [];
-var registerBackend = (name, backend, priority) => {
-  if (backend && typeof backend.init === "function" && typeof backend.createInferenceSessionHandler === "function") {
-    const currentBackend = backends.get(name);
-    if (currentBackend === void 0) {
-      backends.set(name, { backend, priority });
-    } else if (currentBackend.priority > priority) {
-      return;
-    } else if (currentBackend.priority === priority) {
-      if (currentBackend.backend !== backend) {
-        throw new Error(`cannot register backend "${name}" using priority ${priority}`);
-      }
-    }
-    if (priority >= 0) {
-      const i = backendsSortedByPriority.indexOf(name);
-      if (i !== -1) {
-        backendsSortedByPriority.splice(i, 1);
-      }
-      for (let i2 = 0; i2 < backendsSortedByPriority.length; i2++) {
-        if (backends.get(backendsSortedByPriority[i2]).priority <= priority) {
-          backendsSortedByPriority.splice(i2, 0, name);
-          return;
-        }
-      }
-      backendsSortedByPriority.push(name);
-    }
-    return;
-  }
-  throw new TypeError("not a valid backend");
-};
-var tryResolveAndInitializeBackend = async (backendName) => {
-  const backendInfo = backends.get(backendName);
-  if (!backendInfo) {
-    return "backend not found.";
-  }
-  if (backendInfo.initialized) {
-    return backendInfo.backend;
-  } else if (backendInfo.aborted) {
-    return backendInfo.error;
-  } else {
-    const isInitializing = !!backendInfo.initPromise;
-    try {
-      if (!isInitializing) {
-        backendInfo.initPromise = backendInfo.backend.init(backendName);
-      }
-      await backendInfo.initPromise;
-      backendInfo.initialized = true;
-      return backendInfo.backend;
-    } catch (e) {
-      if (!isInitializing) {
-        backendInfo.error = `${e}`;
-        backendInfo.aborted = true;
-      }
-      return backendInfo.error;
-    } finally {
-      delete backendInfo.initPromise;
-    }
-  }
-};
-var resolveBackendAndExecutionProviders = async (options) => {
-  const eps = options.executionProviders || [];
-  const backendHints = eps.map((i) => typeof i === "string" ? i : i.name);
-  const backendNames = backendHints.length === 0 ? backendsSortedByPriority : backendHints;
-  let backend;
-  const errors = [];
-  const availableBackendNames = /* @__PURE__ */ new Set();
-  for (const backendName of backendNames) {
-    const resolveResult = await tryResolveAndInitializeBackend(backendName);
-    if (typeof resolveResult === "string") {
-      errors.push({ name: backendName, err: resolveResult });
-    } else {
-      if (!backend) {
-        backend = resolveResult;
-      }
-      if (backend === resolveResult) {
-        availableBackendNames.add(backendName);
-      }
-    }
-  }
-  if (!backend) {
-    throw new Error(`no available backend found. ERR: ${errors.map((e) => `[${e.name}] ${e.err}`).join(", ")}`);
-  }
-  for (const { name, err } of errors) {
-    if (backendHints.includes(name)) {
-      console.warn(`removing requested execution provider "${name}" from session options because it is not available: ${err}`);
-    }
-  }
-  const filteredEps = eps.filter((i) => availableBackendNames.has(typeof i === "string" ? i : i.name));
-  return [
-    backend,
-    new Proxy(options, {
-      get: (target, prop) => {
-        if (prop === "executionProviders") {
-          return filteredEps;
-        }
-        return Reflect.get(target, prop);
-      }
-    })
-  ];
-};
-
-// node_modules/onnxruntime-common/dist/esm/version.js
-var version2 = "1.24.3";
-
-// node_modules/onnxruntime-common/dist/esm/env-impl.js
-var logLevelValue = "warning";
-var env = {
-  wasm: {},
-  webgl: {},
-  webgpu: {},
-  versions: { common: version2 },
-  set logLevel(value) {
-    if (value === void 0) {
-      return;
-    }
-    if (typeof value !== "string" || ["verbose", "info", "warning", "error", "fatal"].indexOf(value) === -1) {
-      throw new Error(`Unsupported logging level: ${value}`);
-    }
-    logLevelValue = value;
-  },
-  get logLevel() {
-    return logLevelValue;
-  }
-};
-Object.defineProperty(env, "logLevel", { enumerable: true });
-
-// node_modules/onnxruntime-common/dist/esm/env.js
-var env2 = env;
-
-// node_modules/onnxruntime-common/dist/esm/tensor-conversion-impl.js
-var tensorToDataURL = (tensor, options) => {
-  const canvas = typeof document !== "undefined" ? document.createElement("canvas") : new OffscreenCanvas(1, 1);
-  canvas.width = tensor.dims[3];
-  canvas.height = tensor.dims[2];
-  const pixels2DContext = canvas.getContext("2d");
-  if (pixels2DContext != null) {
-    let width;
-    let height;
-    if (options?.tensorLayout !== void 0 && options.tensorLayout === "NHWC") {
-      width = tensor.dims[2];
-      height = tensor.dims[3];
-    } else {
-      width = tensor.dims[3];
-      height = tensor.dims[2];
-    }
-    const inputformat = options?.format !== void 0 ? options.format : "RGB";
-    const norm = options?.norm;
-    let normMean;
-    let normBias;
-    if (norm === void 0 || norm.mean === void 0) {
-      normMean = [255, 255, 255, 255];
-    } else {
-      if (typeof norm.mean === "number") {
-        normMean = [norm.mean, norm.mean, norm.mean, norm.mean];
-      } else {
-        normMean = [norm.mean[0], norm.mean[1], norm.mean[2], 0];
-        if (norm.mean[3] !== void 0) {
-          normMean[3] = norm.mean[3];
-        }
-      }
-    }
-    if (norm === void 0 || norm.bias === void 0) {
-      normBias = [0, 0, 0, 0];
-    } else {
-      if (typeof norm.bias === "number") {
-        normBias = [norm.bias, norm.bias, norm.bias, norm.bias];
-      } else {
-        normBias = [norm.bias[0], norm.bias[1], norm.bias[2], 0];
-        if (norm.bias[3] !== void 0) {
-          normBias[3] = norm.bias[3];
-        }
-      }
-    }
-    const stride = height * width;
-    let rTensorPointer = 0, gTensorPointer = stride, bTensorPointer = stride * 2, aTensorPointer = -1;
-    if (inputformat === "RGBA") {
-      rTensorPointer = 0;
-      gTensorPointer = stride;
-      bTensorPointer = stride * 2;
-      aTensorPointer = stride * 3;
-    } else if (inputformat === "RGB") {
-      rTensorPointer = 0;
-      gTensorPointer = stride;
-      bTensorPointer = stride * 2;
-    } else if (inputformat === "RBG") {
-      rTensorPointer = 0;
-      bTensorPointer = stride;
-      gTensorPointer = stride * 2;
-    }
-    for (let i = 0; i < height; i++) {
-      for (let j2 = 0; j2 < width; j2++) {
-        const R = (tensor.data[rTensorPointer++] - normBias[0]) * normMean[0];
-        const G = (tensor.data[gTensorPointer++] - normBias[1]) * normMean[1];
-        const B = (tensor.data[bTensorPointer++] - normBias[2]) * normMean[2];
-        const A2 = aTensorPointer === -1 ? 255 : (tensor.data[aTensorPointer++] - normBias[3]) * normMean[3];
-        pixels2DContext.fillStyle = "rgba(" + R + "," + G + "," + B + "," + A2 + ")";
-        pixels2DContext.fillRect(j2, i, 1, 1);
-      }
-    }
-    if ("toDataURL" in canvas) {
-      return canvas.toDataURL();
-    } else {
-      throw new Error("toDataURL is not supported");
-    }
-  } else {
-    throw new Error("Can not access image data");
-  }
-};
-var tensorToImageData = (tensor, options) => {
-  const pixels2DContext = typeof document !== "undefined" ? document.createElement("canvas").getContext("2d") : new OffscreenCanvas(1, 1).getContext("2d");
-  let image;
-  if (pixels2DContext != null) {
-    let width;
-    let height;
-    let channels;
-    if (options?.tensorLayout !== void 0 && options.tensorLayout === "NHWC") {
-      width = tensor.dims[2];
-      height = tensor.dims[1];
-      channels = tensor.dims[3];
-    } else {
-      width = tensor.dims[3];
-      height = tensor.dims[2];
-      channels = tensor.dims[1];
-    }
-    const inputformat = options !== void 0 ? options.format !== void 0 ? options.format : "RGB" : "RGB";
-    const norm = options?.norm;
-    let normMean;
-    let normBias;
-    if (norm === void 0 || norm.mean === void 0) {
-      normMean = [255, 255, 255, 255];
-    } else {
-      if (typeof norm.mean === "number") {
-        normMean = [norm.mean, norm.mean, norm.mean, norm.mean];
-      } else {
-        normMean = [norm.mean[0], norm.mean[1], norm.mean[2], 255];
-        if (norm.mean[3] !== void 0) {
-          normMean[3] = norm.mean[3];
-        }
-      }
-    }
-    if (norm === void 0 || norm.bias === void 0) {
-      normBias = [0, 0, 0, 0];
-    } else {
-      if (typeof norm.bias === "number") {
-        normBias = [norm.bias, norm.bias, norm.bias, norm.bias];
-      } else {
-        normBias = [norm.bias[0], norm.bias[1], norm.bias[2], 0];
-        if (norm.bias[3] !== void 0) {
-          normBias[3] = norm.bias[3];
-        }
-      }
-    }
-    const stride = height * width;
-    if (options !== void 0) {
-      if (options.format !== void 0 && channels === 4 && options.format !== "RGBA" || channels === 3 && options.format !== "RGB" && options.format !== "BGR") {
-        throw new Error("Tensor format doesn't match input tensor dims");
-      }
-    }
-    const step = 4;
-    let rImagePointer = 0, gImagePointer = 1, bImagePointer = 2, aImagePointer = 3;
-    let rTensorPointer = 0, gTensorPointer = stride, bTensorPointer = stride * 2, aTensorPointer = -1;
-    if (inputformat === "RGBA") {
-      rTensorPointer = 0;
-      gTensorPointer = stride;
-      bTensorPointer = stride * 2;
-      aTensorPointer = stride * 3;
-    } else if (inputformat === "RGB") {
-      rTensorPointer = 0;
-      gTensorPointer = stride;
-      bTensorPointer = stride * 2;
-    } else if (inputformat === "RBG") {
-      rTensorPointer = 0;
-      bTensorPointer = stride;
-      gTensorPointer = stride * 2;
-    }
-    image = pixels2DContext.createImageData(width, height);
-    for (let i = 0; i < height * width; rImagePointer += step, gImagePointer += step, bImagePointer += step, aImagePointer += step, i++) {
-      image.data[rImagePointer] = (tensor.data[rTensorPointer++] - normBias[0]) * normMean[0];
-      image.data[gImagePointer] = (tensor.data[gTensorPointer++] - normBias[1]) * normMean[1];
-      image.data[bImagePointer] = (tensor.data[bTensorPointer++] - normBias[2]) * normMean[2];
-      image.data[aImagePointer] = aTensorPointer === -1 ? 255 : (tensor.data[aTensorPointer++] - normBias[3]) * normMean[3];
-    }
-  } else {
-    throw new Error("Can not access image data");
-  }
-  return image;
-};
-
-// node_modules/onnxruntime-common/dist/esm/tensor-factory-impl.js
-var bufferToTensor = (buffer, options) => {
-  if (buffer === void 0) {
-    throw new Error("Image buffer must be defined");
-  }
-  if (options.height === void 0 || options.width === void 0) {
-    throw new Error("Image height and width must be defined");
-  }
-  if (options.tensorLayout === "NHWC") {
-    throw new Error("NHWC Tensor layout is not supported yet");
-  }
-  const { height, width } = options;
-  const norm = options.norm ?? { mean: 255, bias: 0 };
-  let normMean;
-  let normBias;
-  if (typeof norm.mean === "number") {
-    normMean = [norm.mean, norm.mean, norm.mean, norm.mean];
-  } else {
-    normMean = [norm.mean[0], norm.mean[1], norm.mean[2], norm.mean[3] ?? 255];
-  }
-  if (typeof norm.bias === "number") {
-    normBias = [norm.bias, norm.bias, norm.bias, norm.bias];
-  } else {
-    normBias = [norm.bias[0], norm.bias[1], norm.bias[2], norm.bias[3] ?? 0];
-  }
-  const inputformat = options.format !== void 0 ? options.format : "RGBA";
-  const outputformat = options.tensorFormat !== void 0 ? options.tensorFormat !== void 0 ? options.tensorFormat : "RGB" : "RGB";
-  const stride = height * width;
-  const float32Data = outputformat === "RGBA" ? new Float32Array(stride * 4) : new Float32Array(stride * 3);
-  let step = 4, rImagePointer = 0, gImagePointer = 1, bImagePointer = 2, aImagePointer = 3;
-  let rTensorPointer = 0, gTensorPointer = stride, bTensorPointer = stride * 2, aTensorPointer = -1;
-  if (inputformat === "RGB") {
-    step = 3;
-    rImagePointer = 0;
-    gImagePointer = 1;
-    bImagePointer = 2;
-    aImagePointer = -1;
-  }
-  if (outputformat === "RGBA") {
-    aTensorPointer = stride * 3;
-  } else if (outputformat === "RBG") {
-    rTensorPointer = 0;
-    bTensorPointer = stride;
-    gTensorPointer = stride * 2;
-  } else if (outputformat === "BGR") {
-    bTensorPointer = 0;
-    gTensorPointer = stride;
-    rTensorPointer = stride * 2;
-  }
-  for (let i = 0; i < stride; i++, rImagePointer += step, bImagePointer += step, gImagePointer += step, aImagePointer += step) {
-    float32Data[rTensorPointer++] = (buffer[rImagePointer] + normBias[0]) / normMean[0];
-    float32Data[gTensorPointer++] = (buffer[gImagePointer] + normBias[1]) / normMean[1];
-    float32Data[bTensorPointer++] = (buffer[bImagePointer] + normBias[2]) / normMean[2];
-    if (aTensorPointer !== -1 && aImagePointer !== -1) {
-      float32Data[aTensorPointer++] = (buffer[aImagePointer] + normBias[3]) / normMean[3];
-    }
-  }
-  const outputTensor = outputformat === "RGBA" ? new Tensor("float32", float32Data, [1, 4, height, width]) : new Tensor("float32", float32Data, [1, 3, height, width]);
-  return outputTensor;
-};
-var tensorFromImage = async (image, options) => {
-  const isHTMLImageEle = typeof HTMLImageElement !== "undefined" && image instanceof HTMLImageElement;
-  const isImageDataEle = typeof ImageData !== "undefined" && image instanceof ImageData;
-  const isImageBitmap = typeof ImageBitmap !== "undefined" && image instanceof ImageBitmap;
-  const isString = typeof image === "string";
-  let data;
-  let bufferToTensorOptions = options ?? {};
-  const createCanvas = () => {
-    if (typeof document !== "undefined") {
-      return document.createElement("canvas");
-    } else if (typeof OffscreenCanvas !== "undefined") {
-      return new OffscreenCanvas(1, 1);
-    } else {
-      throw new Error("Canvas is not supported");
-    }
-  };
-  const createCanvasContext = (canvas) => {
-    if (typeof HTMLCanvasElement !== "undefined" && canvas instanceof HTMLCanvasElement) {
-      return canvas.getContext("2d");
-    } else if (canvas instanceof OffscreenCanvas) {
-      return canvas.getContext("2d");
-    } else {
-      return null;
-    }
-  };
-  if (isHTMLImageEle) {
-    const canvas = createCanvas();
-    canvas.width = image.width;
-    canvas.height = image.height;
-    const pixels2DContext = createCanvasContext(canvas);
-    if (pixels2DContext != null) {
-      let height = image.height;
-      let width = image.width;
-      if (options !== void 0 && options.resizedHeight !== void 0 && options.resizedWidth !== void 0) {
-        height = options.resizedHeight;
-        width = options.resizedWidth;
-      }
-      if (options !== void 0) {
-        bufferToTensorOptions = options;
-        if (options.tensorFormat !== void 0) {
-          throw new Error("Image input config format must be RGBA for HTMLImageElement");
-        } else {
-          bufferToTensorOptions.tensorFormat = "RGBA";
-        }
-        bufferToTensorOptions.height = height;
-        bufferToTensorOptions.width = width;
-      } else {
-        bufferToTensorOptions.tensorFormat = "RGBA";
-        bufferToTensorOptions.height = height;
-        bufferToTensorOptions.width = width;
-      }
-      pixels2DContext.drawImage(image, 0, 0);
-      data = pixels2DContext.getImageData(0, 0, width, height).data;
-    } else {
-      throw new Error("Can not access image data");
-    }
-  } else if (isImageDataEle) {
-    let height;
-    let width;
-    if (options !== void 0 && options.resizedWidth !== void 0 && options.resizedHeight !== void 0) {
-      height = options.resizedHeight;
-      width = options.resizedWidth;
-    } else {
-      height = image.height;
-      width = image.width;
-    }
-    if (options !== void 0) {
-      bufferToTensorOptions = options;
-    }
-    bufferToTensorOptions.format = "RGBA";
-    bufferToTensorOptions.height = height;
-    bufferToTensorOptions.width = width;
-    if (options !== void 0) {
-      const tempCanvas = createCanvas();
-      tempCanvas.width = width;
-      tempCanvas.height = height;
-      const pixels2DContext = createCanvasContext(tempCanvas);
-      if (pixels2DContext != null) {
-        pixels2DContext.putImageData(image, 0, 0);
-        data = pixels2DContext.getImageData(0, 0, width, height).data;
-      } else {
-        throw new Error("Can not access image data");
-      }
-    } else {
-      data = image.data;
-    }
-  } else if (isImageBitmap) {
-    if (options === void 0) {
-      throw new Error("Please provide image config with format for Imagebitmap");
-    }
-    const canvas = createCanvas();
-    canvas.width = image.width;
-    canvas.height = image.height;
-    const pixels2DContext = createCanvasContext(canvas);
-    if (pixels2DContext != null) {
-      const height = image.height;
-      const width = image.width;
-      pixels2DContext.drawImage(image, 0, 0, width, height);
-      data = pixels2DContext.getImageData(0, 0, width, height).data;
-      bufferToTensorOptions.height = height;
-      bufferToTensorOptions.width = width;
-      return bufferToTensor(data, bufferToTensorOptions);
-    } else {
-      throw new Error("Can not access image data");
-    }
-  } else if (isString) {
-    return new Promise((resolve, reject) => {
-      const canvas = createCanvas();
-      const context = createCanvasContext(canvas);
-      if (!image || !context) {
-        return reject();
-      }
-      const newImage = new Image();
-      newImage.crossOrigin = "Anonymous";
-      newImage.src = image;
-      newImage.onload = () => {
-        canvas.width = newImage.width;
-        canvas.height = newImage.height;
-        context.drawImage(newImage, 0, 0, canvas.width, canvas.height);
-        const img = context.getImageData(0, 0, canvas.width, canvas.height);
-        bufferToTensorOptions.height = canvas.height;
-        bufferToTensorOptions.width = canvas.width;
-        resolve(bufferToTensor(img.data, bufferToTensorOptions));
-      };
-    });
-  } else {
-    throw new Error("Input data provided is not supported - aborted tensor creation");
-  }
-  if (data !== void 0) {
-    return bufferToTensor(data, bufferToTensorOptions);
-  } else {
-    throw new Error("Input data provided is not supported - aborted tensor creation");
-  }
-};
-var tensorFromTexture = (texture, options) => {
-  const { width, height, download, dispose } = options;
-  const dims = [1, height, width, 4];
-  return new Tensor({ location: "texture", type: "float32", texture, dims, download, dispose });
-};
-var tensorFromGpuBuffer = (gpuBuffer, options) => {
-  const { dataType, dims, download, dispose } = options;
-  return new Tensor({ location: "gpu-buffer", type: dataType ?? "float32", gpuBuffer, dims, download, dispose });
-};
-var tensorFromMLTensor = (mlTensor, options) => {
-  const { dataType, dims, download, dispose } = options;
-  return new Tensor({ location: "ml-tensor", type: dataType ?? "float32", mlTensor, dims, download, dispose });
-};
-var tensorFromPinnedBuffer = (type, buffer, dims) => new Tensor({ location: "cpu-pinned", type, data: buffer, dims: dims ?? [buffer.length] });
-
-// node_modules/onnxruntime-common/dist/esm/tensor-impl-type-mapping.js
-var NUMERIC_TENSOR_TYPE_TO_TYPEDARRAY_MAP = /* @__PURE__ */ new Map([
-  ["float32", Float32Array],
-  ["uint8", Uint8Array],
-  ["int8", Int8Array],
-  ["uint16", Uint16Array],
-  ["int16", Int16Array],
-  ["int32", Int32Array],
-  ["bool", Uint8Array],
-  ["float64", Float64Array],
-  ["uint32", Uint32Array],
-  ["int4", Uint8Array],
-  ["uint4", Uint8Array]
-]);
-var NUMERIC_TENSOR_TYPEDARRAY_TO_TYPE_MAP = /* @__PURE__ */ new Map([
-  [Float32Array, "float32"],
-  [Uint8Array, "uint8"],
-  [Int8Array, "int8"],
-  [Uint16Array, "uint16"],
-  [Int16Array, "int16"],
-  [Int32Array, "int32"],
-  [Float64Array, "float64"],
-  [Uint32Array, "uint32"]
-]);
-var isTypedArrayChecked = false;
-var checkTypedArray = () => {
-  if (!isTypedArrayChecked) {
-    isTypedArrayChecked = true;
-    const isBigInt64ArrayAvailable = typeof BigInt64Array !== "undefined" && BigInt64Array.from;
-    const isBigUint64ArrayAvailable = typeof BigUint64Array !== "undefined" && BigUint64Array.from;
-    const Float16Array2 = globalThis.Float16Array;
-    const isFloat16ArrayAvailable = typeof Float16Array2 !== "undefined" && Float16Array2.from;
-    if (isBigInt64ArrayAvailable) {
-      NUMERIC_TENSOR_TYPE_TO_TYPEDARRAY_MAP.set("int64", BigInt64Array);
-      NUMERIC_TENSOR_TYPEDARRAY_TO_TYPE_MAP.set(BigInt64Array, "int64");
-    }
-    if (isBigUint64ArrayAvailable) {
-      NUMERIC_TENSOR_TYPE_TO_TYPEDARRAY_MAP.set("uint64", BigUint64Array);
-      NUMERIC_TENSOR_TYPEDARRAY_TO_TYPE_MAP.set(BigUint64Array, "uint64");
-    }
-    if (isFloat16ArrayAvailable) {
-      NUMERIC_TENSOR_TYPE_TO_TYPEDARRAY_MAP.set("float16", Float16Array2);
-      NUMERIC_TENSOR_TYPEDARRAY_TO_TYPE_MAP.set(Float16Array2, "float16");
-    } else {
-      NUMERIC_TENSOR_TYPE_TO_TYPEDARRAY_MAP.set("float16", Uint16Array);
-    }
-  }
-};
-
-// node_modules/onnxruntime-common/dist/esm/tensor-utils-impl.js
-var calculateSize = (dims) => {
-  let size = 1;
-  for (let i = 0; i < dims.length; i++) {
-    const dim = dims[i];
-    if (typeof dim !== "number" || !Number.isSafeInteger(dim)) {
-      throw new TypeError(`dims[${i}] must be an integer, got: ${dim}`);
-    }
-    if (dim < 0) {
-      throw new RangeError(`dims[${i}] must be a non-negative integer, got: ${dim}`);
-    }
-    size *= dim;
-  }
-  return size;
-};
-var tensorReshape = (tensor, dims) => {
-  switch (tensor.location) {
-    case "cpu":
-      return new Tensor(tensor.type, tensor.data, dims);
-    case "cpu-pinned":
-      return new Tensor({
-        location: "cpu-pinned",
-        data: tensor.data,
-        type: tensor.type,
-        dims
-      });
-    case "texture":
-      return new Tensor({
-        location: "texture",
-        texture: tensor.texture,
-        type: tensor.type,
-        dims
-      });
-    case "gpu-buffer":
-      return new Tensor({
-        location: "gpu-buffer",
-        gpuBuffer: tensor.gpuBuffer,
-        type: tensor.type,
-        dims
-      });
-    case "ml-tensor":
-      return new Tensor({
-        location: "ml-tensor",
-        mlTensor: tensor.mlTensor,
-        type: tensor.type,
-        dims
-      });
-    default:
-      throw new Error(`tensorReshape: tensor location ${tensor.location} is not supported`);
-  }
-};
-
-// node_modules/onnxruntime-common/dist/esm/tensor-impl.js
-var Tensor = class {
-  /**
-   * implementation.
-   */
-  constructor(arg0, arg1, arg2) {
-    checkTypedArray();
-    let type;
-    let dims;
-    if (typeof arg0 === "object" && "location" in arg0) {
-      this.dataLocation = arg0.location;
-      type = arg0.type;
-      dims = arg0.dims;
-      switch (arg0.location) {
-        case "cpu-pinned": {
-          const expectedTypedArrayConstructor = NUMERIC_TENSOR_TYPE_TO_TYPEDARRAY_MAP.get(type);
-          if (!expectedTypedArrayConstructor) {
-            throw new TypeError(`unsupported type "${type}" to create tensor from pinned buffer`);
-          }
-          if (!(arg0.data instanceof expectedTypedArrayConstructor)) {
-            throw new TypeError(`buffer should be of type ${expectedTypedArrayConstructor.name}`);
-          }
-          this.cpuData = arg0.data;
-          break;
-        }
-        case "texture": {
-          if (type !== "float32") {
-            throw new TypeError(`unsupported type "${type}" to create tensor from texture`);
-          }
-          this.gpuTextureData = arg0.texture;
-          this.downloader = arg0.download;
-          this.disposer = arg0.dispose;
-          break;
-        }
-        case "gpu-buffer": {
-          if (type !== "float32" && type !== "float16" && type !== "int32" && type !== "int64" && type !== "uint32" && type !== "uint8" && type !== "bool" && type !== "uint4" && type !== "int4") {
-            throw new TypeError(`unsupported type "${type}" to create tensor from gpu buffer`);
-          }
-          this.gpuBufferData = arg0.gpuBuffer;
-          this.downloader = arg0.download;
-          this.disposer = arg0.dispose;
-          break;
-        }
-        case "ml-tensor": {
-          if (type !== "float32" && type !== "float16" && type !== "int32" && type !== "int64" && type !== "uint32" && type !== "uint64" && type !== "int8" && type !== "uint8" && type !== "bool" && type !== "uint4" && type !== "int4") {
-            throw new TypeError(`unsupported type "${type}" to create tensor from MLTensor`);
-          }
-          this.mlTensorData = arg0.mlTensor;
-          this.downloader = arg0.download;
-          this.disposer = arg0.dispose;
-          break;
-        }
-        default:
-          throw new Error(`Tensor constructor: unsupported location '${this.dataLocation}'`);
-      }
-    } else {
-      let data;
-      let maybeDims;
-      if (typeof arg0 === "string") {
-        type = arg0;
-        maybeDims = arg2;
-        if (arg0 === "string") {
-          if (!Array.isArray(arg1)) {
-            throw new TypeError("A string tensor's data must be a string array.");
-          }
-          data = arg1;
-        } else {
-          const typedArrayConstructor = NUMERIC_TENSOR_TYPE_TO_TYPEDARRAY_MAP.get(arg0);
-          if (typedArrayConstructor === void 0) {
-            throw new TypeError(`Unsupported tensor type: ${arg0}.`);
-          }
-          if (Array.isArray(arg1)) {
-            if (arg0 === "float16" && typedArrayConstructor === Uint16Array || arg0 === "uint4" || arg0 === "int4") {
-              throw new TypeError(`Creating a ${arg0} tensor from number array is not supported. Please use ${typedArrayConstructor.name} as data.`);
-            } else if (arg0 === "uint64" || arg0 === "int64") {
-              data = typedArrayConstructor.from(arg1, BigInt);
-            } else {
-              data = typedArrayConstructor.from(arg1);
-            }
-          } else if (arg1 instanceof typedArrayConstructor) {
-            data = arg1;
-          } else if (arg1 instanceof Uint8ClampedArray) {
-            if (arg0 === "uint8") {
-              data = Uint8Array.from(arg1);
-            } else {
-              throw new TypeError(`A Uint8ClampedArray tensor's data must be type of uint8`);
-            }
-          } else if (arg0 === "float16" && arg1 instanceof Uint16Array && typedArrayConstructor !== Uint16Array) {
-            data = new globalThis.Float16Array(arg1.buffer, arg1.byteOffset, arg1.length);
-          } else {
-            throw new TypeError(`A ${type} tensor's data must be type of ${typedArrayConstructor}`);
-          }
-        }
-      } else {
-        maybeDims = arg1;
-        if (Array.isArray(arg0)) {
-          if (arg0.length === 0) {
-            throw new TypeError("Tensor type cannot be inferred from an empty array.");
-          }
-          const firstElementType = typeof arg0[0];
-          if (firstElementType === "string") {
-            type = "string";
-            data = arg0;
-          } else if (firstElementType === "boolean") {
-            type = "bool";
-            data = Uint8Array.from(arg0);
-          } else {
-            throw new TypeError(`Invalid element type of data array: ${firstElementType}.`);
-          }
-        } else if (arg0 instanceof Uint8ClampedArray) {
-          type = "uint8";
-          data = Uint8Array.from(arg0);
-        } else {
-          const mappedType = NUMERIC_TENSOR_TYPEDARRAY_TO_TYPE_MAP.get(arg0.constructor);
-          if (mappedType === void 0) {
-            throw new TypeError(`Unsupported type for tensor data: ${arg0.constructor}.`);
-          }
-          type = mappedType;
-          data = arg0;
-        }
-      }
-      if (maybeDims === void 0) {
-        maybeDims = [data.length];
-      } else if (!Array.isArray(maybeDims)) {
-        throw new TypeError("A tensor's dims must be a number array");
-      }
-      dims = maybeDims;
-      this.cpuData = data;
-      this.dataLocation = "cpu";
-    }
-    const size = calculateSize(dims);
-    if (this.cpuData && size !== this.cpuData.length) {
-      if ((type === "uint4" || type === "int4") && Math.ceil(size / 2) === this.cpuData.length) {
-      } else {
-        throw new Error(`Tensor's size(${size}) does not match data length(${this.cpuData.length}).`);
-      }
-    }
-    this.type = type;
-    this.dims = dims;
-    this.size = size;
-  }
-  // #endregion
-  // #region factory
-  static async fromImage(image, options) {
-    return tensorFromImage(image, options);
-  }
-  static fromTexture(texture, options) {
-    return tensorFromTexture(texture, options);
-  }
-  static fromGpuBuffer(gpuBuffer, options) {
-    return tensorFromGpuBuffer(gpuBuffer, options);
-  }
-  static fromMLTensor(mlTensor, options) {
-    return tensorFromMLTensor(mlTensor, options);
-  }
-  static fromPinnedBuffer(type, buffer, dims) {
-    return tensorFromPinnedBuffer(type, buffer, dims);
-  }
-  // #endregion
-  // #region conversions
-  toDataURL(options) {
-    return tensorToDataURL(this, options);
-  }
-  toImageData(options) {
-    return tensorToImageData(this, options);
-  }
-  // #endregion
-  // #region properties
-  get data() {
-    this.ensureValid();
-    if (!this.cpuData) {
-      throw new Error("The data is not on CPU. Use `getData()` to download GPU data to CPU, or use `texture` or `gpuBuffer` property to access the GPU data directly.");
-    }
-    return this.cpuData;
-  }
-  get location() {
-    return this.dataLocation;
-  }
-  get texture() {
-    this.ensureValid();
-    if (!this.gpuTextureData) {
-      throw new Error("The data is not stored as a WebGL texture.");
-    }
-    return this.gpuTextureData;
-  }
-  get gpuBuffer() {
-    this.ensureValid();
-    if (!this.gpuBufferData) {
-      throw new Error("The data is not stored as a WebGPU buffer.");
-    }
-    return this.gpuBufferData;
-  }
-  get mlTensor() {
-    this.ensureValid();
-    if (!this.mlTensorData) {
-      throw new Error("The data is not stored as a WebNN MLTensor.");
-    }
-    return this.mlTensorData;
-  }
-  // #endregion
-  // #region methods
-  async getData(releaseData) {
-    this.ensureValid();
-    switch (this.dataLocation) {
-      case "cpu":
-      case "cpu-pinned":
-        return this.data;
-      case "texture":
-      case "gpu-buffer":
-      case "ml-tensor": {
-        if (!this.downloader) {
-          throw new Error("The current tensor is not created with a specified data downloader.");
-        }
-        if (this.isDownloading) {
-          throw new Error("The current tensor is being downloaded.");
-        }
-        try {
-          this.isDownloading = true;
-          const data = await this.downloader();
-          this.downloader = void 0;
-          this.dataLocation = "cpu";
-          this.cpuData = data;
-          if (releaseData && this.disposer) {
-            this.disposer();
-            this.disposer = void 0;
-          }
-          return data;
-        } finally {
-          this.isDownloading = false;
-        }
-      }
-      default:
-        throw new Error(`cannot get data from location: ${this.dataLocation}`);
-    }
-  }
-  dispose() {
-    if (this.isDownloading) {
-      throw new Error("The current tensor is being downloaded.");
-    }
-    if (this.disposer) {
-      this.disposer();
-      this.disposer = void 0;
-    }
-    this.cpuData = void 0;
-    this.gpuTextureData = void 0;
-    this.gpuBufferData = void 0;
-    this.mlTensorData = void 0;
-    this.downloader = void 0;
-    this.isDownloading = void 0;
-    this.dataLocation = "none";
-  }
-  // #endregion
-  // #region tensor utilities
-  ensureValid() {
-    if (this.dataLocation === "none") {
-      throw new Error("The tensor is disposed.");
-    }
-  }
-  reshape(dims) {
-    this.ensureValid();
-    if (this.downloader || this.disposer) {
-      throw new Error("Cannot reshape a tensor that owns GPU resource.");
-    }
-    return tensorReshape(this, dims);
-  }
-};
-
-// node_modules/onnxruntime-common/dist/esm/tensor.js
-var Tensor2 = Tensor;
-
-// node_modules/onnxruntime-common/dist/esm/trace.js
-var TRACE = (deviceType, label) => {
-  if (typeof env.trace === "undefined" ? !env.wasm.trace : !env.trace) {
-    return;
-  }
-  console.timeStamp(`${deviceType}::ORT::${label}`);
-};
-var TRACE_FUNC = (msg, extraMsg) => {
-  const stack = new Error().stack?.split(/\r\n|\r|\n/g) || [];
-  let hasTraceFunc = false;
-  for (let i = 0; i < stack.length; i++) {
-    if (hasTraceFunc && !stack[i].includes("TRACE_FUNC")) {
-      let label = `FUNC_${msg}::${stack[i].trim().split(" ")[1]}`;
-      if (extraMsg) {
-        label += `::${extraMsg}`;
-      }
-      TRACE("CPU", label);
-      return;
-    }
-    if (stack[i].includes("TRACE_FUNC")) {
-      hasTraceFunc = true;
-    }
-  }
-};
-var TRACE_FUNC_BEGIN = (extraMsg) => {
-  if (typeof env.trace === "undefined" ? !env.wasm.trace : !env.trace) {
-    return;
-  }
-  TRACE_FUNC("BEGIN", extraMsg);
-};
-var TRACE_FUNC_END = (extraMsg) => {
-  if (typeof env.trace === "undefined" ? !env.wasm.trace : !env.trace) {
-    return;
-  }
-  TRACE_FUNC("END", extraMsg);
-};
-var TRACE_EVENT_BEGIN = (extraMsg) => {
-  if (typeof env.trace === "undefined" ? !env.wasm.trace : !env.trace) {
-    return;
-  }
-  console.time(`ORT::${extraMsg}`);
-};
-var TRACE_EVENT_END = (extraMsg) => {
-  if (typeof env.trace === "undefined" ? !env.wasm.trace : !env.trace) {
-    return;
-  }
-  console.timeEnd(`ORT::${extraMsg}`);
-};
-
-// node_modules/onnxruntime-common/dist/esm/inference-session-impl.js
-var InferenceSession = class _InferenceSession {
-  constructor(handler) {
-    this.handler = handler;
-  }
-  async run(feeds, arg1, arg2) {
-    TRACE_FUNC_BEGIN();
-    TRACE_EVENT_BEGIN("InferenceSession.run");
-    const fetches = {};
-    let options = {};
-    if (typeof feeds !== "object" || feeds === null || feeds instanceof Tensor2 || Array.isArray(feeds)) {
-      throw new TypeError("'feeds' must be an object that use input names as keys and OnnxValue as corresponding values.");
-    }
-    let isFetchesEmpty = true;
-    if (typeof arg1 === "object") {
-      if (arg1 === null) {
-        throw new TypeError("Unexpected argument[1]: cannot be null.");
-      }
-      if (arg1 instanceof Tensor2) {
-        throw new TypeError("'fetches' cannot be a Tensor");
-      }
-      if (Array.isArray(arg1)) {
-        if (arg1.length === 0) {
-          throw new TypeError("'fetches' cannot be an empty array.");
-        }
-        isFetchesEmpty = false;
-        for (const name of arg1) {
-          if (typeof name !== "string") {
-            throw new TypeError("'fetches' must be a string array or an object.");
-          }
-          if (this.outputNames.indexOf(name) === -1) {
-            throw new RangeError(`'fetches' contains invalid output name: ${name}.`);
-          }
-          fetches[name] = null;
-        }
-        if (typeof arg2 === "object" && arg2 !== null) {
-          options = arg2;
-        } else if (typeof arg2 !== "undefined") {
-          throw new TypeError("'options' must be an object.");
-        }
-      } else {
-        let isFetches = false;
-        const arg1Keys = Object.getOwnPropertyNames(arg1);
-        for (const name of this.outputNames) {
-          if (arg1Keys.indexOf(name) !== -1) {
-            const v = arg1[name];
-            if (v === null || v instanceof Tensor2) {
-              isFetches = true;
-              isFetchesEmpty = false;
-              fetches[name] = v;
-            }
-          }
-        }
-        if (isFetches) {
-          if (typeof arg2 === "object" && arg2 !== null) {
-            options = arg2;
-          } else if (typeof arg2 !== "undefined") {
-            throw new TypeError("'options' must be an object.");
-          }
-        } else {
-          options = arg1;
-        }
-      }
-    } else if (typeof arg1 !== "undefined") {
-      throw new TypeError("Unexpected argument[1]: must be 'fetches' or 'options'.");
-    }
-    for (const name of this.inputNames) {
-      if (typeof feeds[name] === "undefined") {
-        throw new Error(`input '${name}' is missing in 'feeds'.`);
-      }
-    }
-    if (isFetchesEmpty) {
-      for (const name of this.outputNames) {
-        fetches[name] = null;
-      }
-    }
-    const results = await this.handler.run(feeds, fetches, options);
-    const returnValue = {};
-    for (const key in results) {
-      if (Object.hasOwnProperty.call(results, key)) {
-        const result = results[key];
-        if (result instanceof Tensor2) {
-          returnValue[key] = result;
-        } else {
-          returnValue[key] = new Tensor2(result.type, result.data, result.dims);
-        }
-      }
-    }
-    TRACE_EVENT_END("InferenceSession.run");
-    TRACE_FUNC_END();
-    return returnValue;
-  }
-  async release() {
-    return this.handler.dispose();
-  }
-  static async create(arg0, arg1, arg2, arg3) {
-    TRACE_FUNC_BEGIN();
-    TRACE_EVENT_BEGIN("InferenceSession.create");
-    let filePathOrUint8Array;
-    let options = {};
-    if (typeof arg0 === "string") {
-      filePathOrUint8Array = arg0;
-      if (typeof arg1 === "object" && arg1 !== null) {
-        options = arg1;
-      } else if (typeof arg1 !== "undefined") {
-        throw new TypeError("'options' must be an object.");
-      }
-    } else if (arg0 instanceof Uint8Array) {
-      filePathOrUint8Array = arg0;
-      if (typeof arg1 === "object" && arg1 !== null) {
-        options = arg1;
-      } else if (typeof arg1 !== "undefined") {
-        throw new TypeError("'options' must be an object.");
-      }
-    } else if (arg0 instanceof ArrayBuffer || typeof SharedArrayBuffer !== "undefined" && arg0 instanceof SharedArrayBuffer) {
-      const buffer = arg0;
-      let byteOffset = 0;
-      let byteLength = arg0.byteLength;
-      if (typeof arg1 === "object" && arg1 !== null) {
-        options = arg1;
-      } else if (typeof arg1 === "number") {
-        byteOffset = arg1;
-        if (!Number.isSafeInteger(byteOffset)) {
-          throw new RangeError("'byteOffset' must be an integer.");
-        }
-        if (byteOffset < 0 || byteOffset >= buffer.byteLength) {
-          throw new RangeError(`'byteOffset' is out of range [0, ${buffer.byteLength}).`);
-        }
-        byteLength = arg0.byteLength - byteOffset;
-        if (typeof arg2 === "number") {
-          byteLength = arg2;
-          if (!Number.isSafeInteger(byteLength)) {
-            throw new RangeError("'byteLength' must be an integer.");
-          }
-          if (byteLength <= 0 || byteOffset + byteLength > buffer.byteLength) {
-            throw new RangeError(`'byteLength' is out of range (0, ${buffer.byteLength - byteOffset}].`);
-          }
-          if (typeof arg3 === "object" && arg3 !== null) {
-            options = arg3;
-          } else if (typeof arg3 !== "undefined") {
-            throw new TypeError("'options' must be an object.");
-          }
-        } else if (typeof arg2 !== "undefined") {
-          throw new TypeError("'byteLength' must be a number.");
-        }
-      } else if (typeof arg1 !== "undefined") {
-        throw new TypeError("'options' must be an object.");
-      }
-      filePathOrUint8Array = new Uint8Array(buffer, byteOffset, byteLength);
-    } else {
-      throw new TypeError("Unexpected argument[0]: must be 'path' or 'buffer'.");
-    }
-    const [backend, optionsWithValidatedEPs] = await resolveBackendAndExecutionProviders(options);
-    const handler = await backend.createInferenceSessionHandler(filePathOrUint8Array, optionsWithValidatedEPs);
-    TRACE_EVENT_END("InferenceSession.create");
-    TRACE_FUNC_END();
-    return new _InferenceSession(handler);
-  }
-  startProfiling() {
-    this.handler.startProfiling();
-  }
-  endProfiling() {
-    this.handler.endProfiling();
-  }
-  get inputNames() {
-    return this.handler.inputNames;
-  }
-  get outputNames() {
-    return this.handler.outputNames;
-  }
-  get inputMetadata() {
-    return this.handler.inputMetadata;
-  }
-  get outputMetadata() {
-    return this.handler.outputMetadata;
-  }
-};
-
-// node_modules/onnxruntime-common/dist/esm/inference-session.js
-var InferenceSession2 = InferenceSession;
-
-// node_modules/onnxruntime-web/dist/ort.node.min.mjs
-var import_meta = {};
-var require2 = (0, import_module.createRequire)(import_meta.url);
-var pe = Object.defineProperty;
-var Et = Object.getOwnPropertyDescriptor;
-var St = Object.getOwnPropertyNames;
-var ht = Object.prototype.hasOwnProperty;
-var de = ((e) => typeof require2 < "u" ? require2 : typeof Proxy < "u" ? new Proxy(e, { get: (t, n) => (typeof require2 < "u" ? require2 : t)[n] }) : e)(function(e) {
-  if (typeof require2 < "u") return require2.apply(this, arguments);
-  throw Error('Dynamic require of "' + e + '" is not supported');
-});
-var C = (e, t) => () => (e && (t = e(e = 0)), t);
-var Ot = (e, t) => {
-  for (var n in t) pe(e, n, { get: t[n], enumerable: true });
-};
-var It = (e, t, n, o) => {
-  if (t && typeof t == "object" || typeof t == "function") for (let r of St(t)) !ht.call(e, r) && r !== n && pe(e, r, { get: () => t[r], enumerable: !(o = Et(t, r)) || o.enumerable });
-  return e;
-};
-var Tt = (e) => It(pe({}, "__esModule", { value: true }), e);
-var j;
-var re = C(() => {
-  "use strict";
-  j = !!(typeof process < "u" && process.versions && process.versions.node);
-});
-var Ae;
-var Lt;
-var Bt;
-var $;
-var xe;
-var De;
-var _t;
-var Pt;
-var vt;
-var Dt;
-var Ue;
-var Ce;
-var me = C(() => {
-  "use strict";
-  re();
-  Ae = j || typeof location > "u" ? void 0 : location.origin, Lt = import_meta.url > "file:" && import_meta.url < "file;", Bt = () => {
-    if (!j) {
-      if (Lt) {
-        let e = URL;
-        return new URL(new e("ort.node.min.mjs", import_meta.url).href, Ae).href;
-      }
-      return import_meta.url;
-    }
-  }, $ = Bt(), xe = () => {
-    if ($ && !$.startsWith("blob:")) return $.substring(0, $.lastIndexOf("/") + 1);
-  }, De = (e, t) => {
-    try {
-      let n = t ?? $;
-      return (n ? new URL(e, n) : new URL(e)).origin === Ae;
-    } catch {
-      return false;
-    }
-  }, _t = (e, t) => {
-    let n = t ?? $;
-    try {
-      return (n ? new URL(e, n) : new URL(e)).href;
-    } catch {
-      return;
-    }
-  }, Pt = (e, t) => `${t ?? "./"}${e}`, vt = async (e) => {
-    let n = await (await fetch(e, { credentials: "same-origin" })).blob();
-    return URL.createObjectURL(n);
-  }, Dt = async (e) => (await import(
-    /*webpackIgnore:true*/
-    /*@vite-ignore*/
-    e
-  )).default, Ue = void 0, Ce = async (e, t, n, o) => {
-    let r = Ue && !(e || t);
-    if (r) if ($) r = De($) || o && !n;
-    else if (o && !n) r = true;
-    else throw new Error("cannot determine the script source URL.");
-    if (r) return [void 0, Ue];
-    {
-      let a = "ort-wasm-simd-threaded.mjs", s = e ?? _t(a, t), i = !j && n && s && !De(s, t), u = i ? await vt(s) : s ?? Pt(a, t);
-      return [i ? u : void 0, await Dt(u)];
-    }
-  };
-});
-var be;
-var we;
-var ne;
-var Me;
-var Ut;
-var At;
-var xt;
-var We;
-var E;
-var V = C(() => {
-  "use strict";
-  me();
-  we = false, ne = false, Me = false, Ut = () => {
-    if (typeof SharedArrayBuffer > "u") return false;
-    try {
-      return typeof MessageChannel < "u" && new MessageChannel().port1.postMessage(new SharedArrayBuffer(1)), WebAssembly.validate(new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0, 1, 4, 1, 96, 0, 0, 3, 2, 1, 0, 5, 4, 1, 3, 1, 1, 10, 11, 1, 9, 0, 65, 0, 254, 16, 2, 0, 26, 11]));
-    } catch {
-      return false;
-    }
-  }, At = () => {
-    try {
-      return WebAssembly.validate(new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0, 1, 4, 1, 96, 0, 0, 3, 2, 1, 0, 10, 30, 1, 28, 0, 65, 0, 253, 15, 253, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 253, 186, 1, 26, 11]));
-    } catch {
-      return false;
-    }
-  }, xt = () => {
-    try {
-      return WebAssembly.validate(new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0, 1, 5, 1, 96, 0, 1, 123, 3, 2, 1, 0, 10, 19, 1, 17, 0, 65, 1, 253, 15, 65, 2, 253, 15, 65, 3, 253, 15, 253, 147, 2, 11]));
-    } catch {
-      return false;
-    }
-  }, We = async (e) => {
-    if (we) return Promise.resolve();
-    if (ne) throw new Error("multiple calls to 'initializeWebAssembly()' detected.");
-    if (Me) throw new Error("previous call to 'initializeWebAssembly()' failed.");
-    ne = true;
-    let t = e.initTimeout, n = e.numThreads;
-    if (e.simd !== false) {
-      if (e.simd === "relaxed") {
-        if (!xt()) throw new Error("Relaxed WebAssembly SIMD is not supported in the current environment.");
-      } else if (!At()) throw new Error("WebAssembly SIMD is not supported in the current environment.");
-    }
-    let o = Ut();
-    n > 1 && !o && (typeof self < "u" && !self.crossOriginIsolated && console.warn("env.wasm.numThreads is set to " + n + ", but this will not work unless you enable crossOriginIsolated mode. See https://web.dev/cross-origin-isolation-guide/ for more info."), console.warn("WebAssembly multi-threading is not supported in the current environment. Falling back to single-threading."), e.numThreads = n = 1);
-    let r = e.wasmPaths, a = typeof r == "string" ? r : void 0, s = r?.mjs, i = s?.href ?? s, u = r?.wasm, f = u?.href ?? u, w = e.wasmBinary, [l, c] = await Ce(i, a, n > 1, !!w || !!f), p = false, S = [];
-    if (t > 0 && S.push(new Promise((h) => {
-      setTimeout(() => {
-        p = true, h();
-      }, t);
-    })), S.push(new Promise((h, v) => {
-      let m = { numThreads: n };
-      if (w) m.wasmBinary = w, m.locateFile = (b) => b;
-      else if (f || a) m.locateFile = (b) => f ?? a + b;
-      else if (i && i.indexOf("blob:") !== 0) m.locateFile = (b) => new URL(b, i).href;
-      else if (l) {
-        let b = xe();
-        b && (m.locateFile = (M) => b + M);
-      }
-      c(m).then((b) => {
-        ne = false, we = true, be = b, h(), l && URL.revokeObjectURL(l);
-      }, (b) => {
-        ne = false, Me = true, v(b);
-      });
-    })), await Promise.race(S), p) throw new Error(`WebAssembly backend initializing failed due to timeout: ${t}ms`);
-  }, E = () => {
-    if (we && be) return be;
-    throw new Error("WebAssembly is not initialized yet.");
-  };
-});
-var A;
-var K;
-var g;
-var oe = C(() => {
-  "use strict";
-  V();
-  A = (e, t) => {
-    let n = E(), o = n.lengthBytesUTF8(e) + 1, r = n._malloc(o);
-    return n.stringToUTF8(e, r, o), t.push(r), r;
-  }, K = (e, t, n, o) => {
-    if (typeof e == "object" && e !== null) {
-      if (n.has(e)) throw new Error("Circular reference in options");
-      n.add(e);
-    }
-    Object.entries(e).forEach(([r, a]) => {
-      let s = t ? t + r : r;
-      if (typeof a == "object") K(a, s + ".", n, o);
-      else if (typeof a == "string" || typeof a == "number") o(s, a.toString());
-      else if (typeof a == "boolean") o(s, a ? "1" : "0");
-      else throw new Error(`Can't handle extra config type: ${typeof a}`);
-    });
-  }, g = (e) => {
-    let t = E(), n = t.stackSave();
-    try {
-      let o = t.PTR_SIZE, r = t.stackAlloc(2 * o);
-      t._OrtGetLastError(r, r + o);
-      let a = Number(t.getValue(r, o === 4 ? "i32" : "i64")), s = t.getValue(r + o, "*"), i = s ? t.UTF8ToString(s) : "";
-      throw new Error(`${e} ERROR_CODE: ${a}, ERROR_MESSAGE: ${i}`);
-    } finally {
-      t.stackRestore(n);
-    }
-  };
-});
-var Fe;
-var ke = C(() => {
-  "use strict";
-  V();
-  oe();
-  Fe = (e) => {
-    let t = E(), n = 0, o = [], r = e || {};
-    try {
-      if (e?.logSeverityLevel === void 0) r.logSeverityLevel = 2;
-      else if (typeof e.logSeverityLevel != "number" || !Number.isInteger(e.logSeverityLevel) || e.logSeverityLevel < 0 || e.logSeverityLevel > 4) throw new Error(`log severity level is not valid: ${e.logSeverityLevel}`);
-      if (e?.logVerbosityLevel === void 0) r.logVerbosityLevel = 0;
-      else if (typeof e.logVerbosityLevel != "number" || !Number.isInteger(e.logVerbosityLevel)) throw new Error(`log verbosity level is not valid: ${e.logVerbosityLevel}`);
-      e?.terminate === void 0 && (r.terminate = false);
-      let a = 0;
-      return e?.tag !== void 0 && (a = A(e.tag, o)), n = t._OrtCreateRunOptions(r.logSeverityLevel, r.logVerbosityLevel, !!r.terminate, a), n === 0 && g("Can't create run options."), e?.extra !== void 0 && K(e.extra, "", /* @__PURE__ */ new WeakSet(), (s, i) => {
-        let u = A(s, o), f = A(i, o);
-        t._OrtAddRunConfigEntry(n, u, f) !== 0 && g(`Can't set a run config entry: ${s} - ${i}.`);
-      }), [n, o];
-    } catch (a) {
-      throw n !== 0 && t._OrtReleaseRunOptions(n), o.forEach((s) => t._free(s)), a;
-    }
-  };
-});
-var Ct;
-var Mt;
-var Wt;
-var se;
-var Ft;
-var Re;
-var Ne = C(() => {
-  "use strict";
-  V();
-  oe();
-  Ct = (e) => {
-    switch (e) {
-      case "disabled":
-        return 0;
-      case "basic":
-        return 1;
-      case "extended":
-        return 2;
-      case "layout":
-        return 3;
-      case "all":
-        return 99;
-      default:
-        throw new Error(`unsupported graph optimization level: ${e}`);
-    }
-  }, Mt = (e) => {
-    switch (e) {
-      case "sequential":
-        return 0;
-      case "parallel":
-        return 1;
-      default:
-        throw new Error(`unsupported execution mode: ${e}`);
-    }
-  }, Wt = (e) => {
-    e.extra || (e.extra = {}), e.extra.session || (e.extra.session = {});
-    let t = e.extra.session;
-    t.use_ort_model_bytes_directly || (t.use_ort_model_bytes_directly = "1"), e.executionProviders && e.executionProviders.some((n) => (typeof n == "string" ? n : n.name) === "webgpu") && (e.enableMemPattern = false);
-  }, se = (e, t, n, o) => {
-    let r = A(t, o), a = A(n, o);
-    E()._OrtAddSessionConfigEntry(e, r, a) !== 0 && g(`Can't set a session config entry: ${t} - ${n}.`);
-  }, Ft = async (e, t, n) => {
-    let o = t.executionProviders;
-    for (let r of o) {
-      let a = typeof r == "string" ? r : r.name, s = [];
-      switch (a) {
-        case "webnn":
-          if (a = "WEBNN", typeof r != "string") {
-            let c = r?.deviceType;
-            c && se(e, "deviceType", c, n);
-          }
-          break;
-        case "webgpu":
-          if (a = "JS", typeof r != "string") {
-            let l = r;
-            if (l?.preferredLayout) {
-              if (l.preferredLayout !== "NCHW" && l.preferredLayout !== "NHWC") throw new Error(`preferredLayout must be either 'NCHW' or 'NHWC': ${l.preferredLayout}`);
-              se(e, "preferredLayout", l.preferredLayout, n);
-            }
-          }
-          break;
-        case "wasm":
-        case "cpu":
-          continue;
-        default:
-          throw new Error(`not supported execution provider: ${a}`);
-      }
-      let i = A(a, n), u = s.length, f = 0, w = 0;
-      if (u > 0) {
-        f = E()._malloc(u * E().PTR_SIZE), n.push(f), w = E()._malloc(u * E().PTR_SIZE), n.push(w);
-        for (let l = 0; l < u; l++) E().setValue(f + l * E().PTR_SIZE, s[l][0], "*"), E().setValue(w + l * E().PTR_SIZE, s[l][1], "*");
-      }
-      await E()._OrtAppendExecutionProvider(e, i, f, w, u) !== 0 && g(`Can't append execution provider: ${a}.`);
-    }
-  }, Re = async (e) => {
-    let t = E(), n = 0, o = [], r = e || {};
-    Wt(r);
-    try {
-      let a = Ct(r.graphOptimizationLevel ?? "all"), s = Mt(r.executionMode ?? "sequential"), i = typeof r.logId == "string" ? A(r.logId, o) : 0, u = r.logSeverityLevel ?? 2;
-      if (!Number.isInteger(u) || u < 0 || u > 4) throw new Error(`log severity level is not valid: ${u}`);
-      let f = r.logVerbosityLevel ?? 0;
-      if (!Number.isInteger(f) || f < 0 || f > 4) throw new Error(`log verbosity level is not valid: ${f}`);
-      let w = typeof r.optimizedModelFilePath == "string" ? A(r.optimizedModelFilePath, o) : 0;
-      if (n = t._OrtCreateSessionOptions(a, !!r.enableCpuMemArena, !!r.enableMemPattern, s, !!r.enableProfiling, 0, i, u, f, w), n === 0 && g("Can't create session options."), r.executionProviders && await Ft(n, r, o), r.enableGraphCapture !== void 0) {
-        if (typeof r.enableGraphCapture != "boolean") throw new Error(`enableGraphCapture must be a boolean value: ${r.enableGraphCapture}`);
-        se(n, "enableGraphCapture", r.enableGraphCapture.toString(), o);
-      }
-      if (r.freeDimensionOverrides) for (let [l, c] of Object.entries(r.freeDimensionOverrides)) {
-        if (typeof l != "string") throw new Error(`free dimension override name must be a string: ${l}`);
-        if (typeof c != "number" || !Number.isInteger(c) || c < 0) throw new Error(`free dimension override value must be a non-negative integer: ${c}`);
-        let p = A(l, o);
-        t._OrtAddFreeDimensionOverride(n, p, c) !== 0 && g(`Can't set a free dimension override: ${l} - ${c}.`);
-      }
-      return r.extra !== void 0 && K(r.extra, "", /* @__PURE__ */ new WeakSet(), (l, c) => {
-        se(n, l, c, o);
-      }), [n, o];
-    } catch (a) {
-      throw n !== 0 && t._OrtReleaseSessionOptions(n) !== 0 && g("Can't release session options."), o.forEach((s) => t._free(s)), a;
-    }
-  };
-});
-var J;
-var ae;
-var q;
-var Ge;
-var je;
-var ie;
-var ue;
-var $e;
-var ge = C(() => {
-  "use strict";
-  J = (e) => {
-    switch (e) {
-      case "int8":
-        return 3;
-      case "uint8":
-        return 2;
-      case "bool":
-        return 9;
-      case "int16":
-        return 5;
-      case "uint16":
-        return 4;
-      case "int32":
-        return 6;
-      case "uint32":
-        return 12;
-      case "float16":
-        return 10;
-      case "float32":
-        return 1;
-      case "float64":
-        return 11;
-      case "string":
-        return 8;
-      case "int64":
-        return 7;
-      case "uint64":
-        return 13;
-      case "int4":
-        return 22;
-      case "uint4":
-        return 21;
-      default:
-        throw new Error(`unsupported data type: ${e}`);
-    }
-  }, ae = (e) => {
-    switch (e) {
-      case 3:
-        return "int8";
-      case 2:
-        return "uint8";
-      case 9:
-        return "bool";
-      case 5:
-        return "int16";
-      case 4:
-        return "uint16";
-      case 6:
-        return "int32";
-      case 12:
-        return "uint32";
-      case 10:
-        return "float16";
-      case 1:
-        return "float32";
-      case 11:
-        return "float64";
-      case 8:
-        return "string";
-      case 7:
-        return "int64";
-      case 13:
-        return "uint64";
-      case 22:
-        return "int4";
-      case 21:
-        return "uint4";
-      default:
-        throw new Error(`unsupported data type: ${e}`);
-    }
-  }, q = (e, t) => {
-    let n = [-1, 4, 1, 1, 2, 2, 4, 8, -1, 1, 2, 8, 4, 8, -1, -1, -1, -1, -1, -1, -1, 0.5, 0.5][e], o = typeof t == "number" ? t : t.reduce((r, a) => r * a, 1);
-    return n > 0 ? Math.ceil(o * n) : void 0;
-  }, Ge = (e) => {
-    switch (e) {
-      case "float16":
-        return typeof Float16Array < "u" && Float16Array.from ? Float16Array : Uint16Array;
-      case "float32":
-        return Float32Array;
-      case "uint8":
-        return Uint8Array;
-      case "int8":
-        return Int8Array;
-      case "uint16":
-        return Uint16Array;
-      case "int16":
-        return Int16Array;
-      case "int32":
-        return Int32Array;
-      case "bool":
-        return Uint8Array;
-      case "float64":
-        return Float64Array;
-      case "uint32":
-        return Uint32Array;
-      case "int64":
-        return BigInt64Array;
-      case "uint64":
-        return BigUint64Array;
-      default:
-        throw new Error(`unsupported type: ${e}`);
-    }
-  }, je = (e) => {
-    switch (e) {
-      case "verbose":
-        return 0;
-      case "info":
-        return 1;
-      case "warning":
-        return 2;
-      case "error":
-        return 3;
-      case "fatal":
-        return 4;
-      default:
-        throw new Error(`unsupported logging level: ${e}`);
-    }
-  }, ie = (e) => e === "float32" || e === "float16" || e === "int32" || e === "int64" || e === "uint32" || e === "uint8" || e === "bool" || e === "uint4" || e === "int4", ue = (e) => e === "float32" || e === "float16" || e === "int32" || e === "int64" || e === "uint32" || e === "uint64" || e === "int8" || e === "uint8" || e === "bool" || e === "uint4" || e === "int4", $e = (e) => {
-    switch (e) {
-      case "none":
-        return 0;
-      case "cpu":
-        return 1;
-      case "cpu-pinned":
-        return 2;
-      case "texture":
-        return 3;
-      case "gpu-buffer":
-        return 4;
-      case "ml-tensor":
-        return 5;
-      default:
-        throw new Error(`unsupported data location: ${e}`);
-    }
-  };
-});
-var Q;
-var ye = C(() => {
-  "use strict";
-  re();
-  Q = async (e) => {
-    if (typeof e == "string") if (j) try {
-      let { readFile: t } = de("node:fs/promises");
-      return new Uint8Array(await t(e));
-    } catch (t) {
-      if (t.code === "ERR_FS_FILE_TOO_LARGE") {
-        let { createReadStream: n } = de("node:fs"), o = n(e), r = [];
-        for await (let a of o) r.push(a);
-        return new Uint8Array(Buffer.concat(r));
-      }
-      throw t;
-    }
-    else {
-      let t = await fetch(e);
-      if (!t.ok) throw new Error(`failed to load external data file: ${e}`);
-      let n = t.headers.get("Content-Length"), o = n ? parseInt(n, 10) : 0;
-      if (o < 1073741824) return new Uint8Array(await t.arrayBuffer());
-      {
-        if (!t.body) throw new Error(`failed to load external data file: ${e}, no response body.`);
-        let r = t.body.getReader(), a;
-        try {
-          a = new ArrayBuffer(o);
-        } catch (i) {
-          if (i instanceof RangeError) {
-            let u = Math.ceil(o / 65536);
-            a = new WebAssembly.Memory({ initial: u, maximum: u }).buffer;
-          } else throw i;
-        }
-        let s = 0;
-        for (; ; ) {
-          let { done: i, value: u } = await r.read();
-          if (i) break;
-          let f = u.byteLength;
-          new Uint8Array(a, s, f).set(u), s += f;
-        }
-        return new Uint8Array(a, 0, o);
-      }
-    }
-    else return e instanceof Blob ? new Uint8Array(await e.arrayBuffer()) : e instanceof Uint8Array ? e : new Uint8Array(e);
-  };
-});
-var kt;
-var qe;
-var Ye;
-var Y;
-var Rt;
-var Ve;
-var Ee;
-var Ze;
-var Xe;
-var Je;
-var Ke;
-var Qe;
-var et = C(() => {
-  "use strict";
-  ke();
-  Ne();
-  ge();
-  V();
-  oe();
-  ye();
-  kt = (e, t) => {
-    E()._OrtInit(e, t) !== 0 && g("Can't initialize onnxruntime.");
-  }, qe = async (e) => {
-    kt(e.wasm.numThreads, je(e.logLevel));
-  }, Ye = async (e, t) => {
-    E().asyncInit?.();
-    let n = e.webgpu.adapter;
-    if (t === "webgpu") {
-      if (typeof navigator > "u" || !navigator.gpu) throw new Error("WebGPU is not supported in current environment");
-      if (n) {
-        if (typeof n.limits != "object" || typeof n.features != "object" || typeof n.requestDevice != "function") throw new Error("Invalid GPU adapter set in `env.webgpu.adapter`. It must be a GPUAdapter object.");
-      } else {
-        let o = e.webgpu.powerPreference;
-        if (o !== void 0 && o !== "low-power" && o !== "high-performance") throw new Error(`Invalid powerPreference setting: "${o}"`);
-        let r = e.webgpu.forceFallbackAdapter;
-        if (r !== void 0 && typeof r != "boolean") throw new Error(`Invalid forceFallbackAdapter setting: "${r}"`);
-        if (n = await navigator.gpu.requestAdapter({ powerPreference: o, forceFallbackAdapter: r }), !n) throw new Error('Failed to get GPU adapter. You may need to enable flag "--enable-unsafe-webgpu" if you are using Chrome.');
-      }
-    }
-    if (t === "webnn" && (typeof navigator > "u" || !navigator.ml)) throw new Error("WebNN is not supported in current environment");
-  }, Y = /* @__PURE__ */ new Map(), Rt = (e) => {
-    let t = E(), n = t.stackSave();
-    try {
-      let o = t.PTR_SIZE, r = t.stackAlloc(2 * o);
-      t._OrtGetInputOutputCount(e, r, r + o) !== 0 && g("Can't get session input/output count.");
-      let s = o === 4 ? "i32" : "i64";
-      return [Number(t.getValue(r, s)), Number(t.getValue(r + o, s))];
-    } finally {
-      t.stackRestore(n);
-    }
-  }, Ve = (e, t) => {
-    let n = E(), o = n.stackSave(), r = 0;
-    try {
-      let a = n.PTR_SIZE, s = n.stackAlloc(2 * a);
-      n._OrtGetInputOutputMetadata(e, t, s, s + a) !== 0 && g("Can't get session input/output metadata.");
-      let u = Number(n.getValue(s, "*"));
-      r = Number(n.getValue(s + a, "*"));
-      let f = n.HEAP32[r / 4];
-      if (f === 0) return [u, 0];
-      let w = n.HEAPU32[r / 4 + 1], l = [];
-      for (let c = 0; c < w; c++) {
-        let p = Number(n.getValue(r + 8 + c * a, "*"));
-        l.push(p !== 0 ? n.UTF8ToString(p) : Number(n.getValue(r + 8 + (c + w) * a, "*")));
-      }
-      return [u, f, l];
-    } finally {
-      n.stackRestore(o), r !== 0 && n._OrtFree(r);
-    }
-  }, Ee = (e) => {
-    let t = E(), n = t._malloc(e.byteLength);
-    if (n === 0) throw new Error(`Can't create a session. failed to allocate a buffer of size ${e.byteLength}.`);
-    return t.HEAPU8.set(e, n), [n, e.byteLength];
-  }, Ze = async (e, t) => {
-    let n, o, r = E();
-    Array.isArray(e) ? [n, o] = e : e.buffer === r.HEAPU8.buffer ? [n, o] = [e.byteOffset, e.byteLength] : [n, o] = Ee(e);
-    let a = 0, s = 0, i = 0, u = [], f = [], w = [];
-    try {
-      if ([s, u] = await Re(t), t?.externalData && r.mountExternalData) {
-        let y = [];
-        for (let O of t.externalData) {
-          let B = typeof O == "string" ? O : O.path;
-          y.push(Q(typeof O == "string" ? O : O.data).then((U) => {
-            r.mountExternalData(B, U);
-          }));
-        }
-        await Promise.all(y);
-      }
-      for (let y of t?.executionProviders ?? []) if ((typeof y == "string" ? y : y.name) === "webnn") {
-        if (r.shouldTransferToMLTensor = false, typeof y != "string") {
-          let B = y, U = B?.context, _ = B?.gpuDevice, Z = B?.deviceType, z = B?.powerPreference;
-          U ? r.currentContext = U : _ ? r.currentContext = await r.webnnCreateMLContext(_) : r.currentContext = await r.webnnCreateMLContext({ deviceType: Z, powerPreference: z });
-        } else r.currentContext = await r.webnnCreateMLContext();
-        break;
-      }
-      a = await r._OrtCreateSession(n, o, s), r.webgpuOnCreateSession?.(a), a === 0 && g("Can't create a session."), r.jsepOnCreateSession?.(), r.currentContext && (r.webnnRegisterMLContext(a, r.currentContext), r.currentContext = void 0, r.shouldTransferToMLTensor = true);
-      let [l, c] = Rt(a), p = !!t?.enableGraphCapture, S = [], h = [], v = [], m = [], b = [];
-      for (let y = 0; y < l; y++) {
-        let [O, B, U] = Ve(a, y);
-        O === 0 && g("Can't get an input name."), f.push(O);
-        let _ = r.UTF8ToString(O);
-        S.push(_), v.push(B === 0 ? { name: _, isTensor: false } : { name: _, isTensor: true, type: ae(B), shape: U });
-      }
-      for (let y = 0; y < c; y++) {
-        let [O, B, U] = Ve(a, y + l);
-        O === 0 && g("Can't get an output name."), w.push(O);
-        let _ = r.UTF8ToString(O);
-        h.push(_), m.push(B === 0 ? { name: _, isTensor: false } : { name: _, isTensor: true, type: ae(B), shape: U });
-      }
-      return Y.set(a, [a, f, w, null, p, false]), [a, S, h, v, m];
-    } catch (l) {
-      throw f.forEach((c) => r._OrtFree(c)), w.forEach((c) => r._OrtFree(c)), i !== 0 && r._OrtReleaseBinding(i) !== 0 && g("Can't release IO binding."), a !== 0 && r._OrtReleaseSession(a) !== 0 && g("Can't release session."), l;
-    } finally {
-      r._free(n), s !== 0 && r._OrtReleaseSessionOptions(s) !== 0 && g("Can't release session options."), u.forEach((l) => r._free(l)), r.unmountExternalData?.();
-    }
-  }, Xe = (e) => {
-    let t = E(), n = Y.get(e);
-    if (!n) throw new Error(`cannot release session. invalid session id: ${e}`);
-    let [o, r, a, s, i] = n;
-    s && (i && t._OrtClearBoundOutputs(s.handle) !== 0 && g("Can't clear bound outputs."), t._OrtReleaseBinding(s.handle) !== 0 && g("Can't release IO binding.")), t.jsepOnReleaseSession?.(e), t.webnnOnReleaseSession?.(e), t.webgpuOnReleaseSession?.(e), r.forEach((u) => t._OrtFree(u)), a.forEach((u) => t._OrtFree(u)), t._OrtReleaseSession(o) !== 0 && g("Can't release session."), Y.delete(e);
-  }, Je = async (e, t, n, o, r, a, s = false) => {
-    if (!e) {
-      t.push(0);
-      return;
-    }
-    let i = E(), u = i.PTR_SIZE, f = e[0], w = e[1], l = e[3], c = l, p, S;
-    if (f === "string" && (l === "gpu-buffer" || l === "ml-tensor")) throw new Error("String tensor is not supported on GPU.");
-    if (s && l !== "gpu-buffer") throw new Error(`External buffer must be provided for input/output index ${a} when enableGraphCapture is true.`);
-    if (l === "gpu-buffer") {
-      let m = e[2].gpuBuffer;
-      S = q(J(f), w);
-      {
-        let b = i.jsepRegisterBuffer;
-        if (!b) throw new Error('Tensor location "gpu-buffer" is not supported without using WebGPU.');
-        p = b(o, a, m, S);
-      }
-    } else if (l === "ml-tensor") {
-      let m = e[2].mlTensor;
-      S = q(J(f), w);
-      let b = i.webnnRegisterMLTensor;
-      if (!b) throw new Error('Tensor location "ml-tensor" is not supported without using WebNN.');
-      p = b(o, m, J(f), w);
-    } else {
-      let m = e[2];
-      if (Array.isArray(m)) {
-        S = u * m.length, p = i._malloc(S), n.push(p);
-        for (let b = 0; b < m.length; b++) {
-          if (typeof m[b] != "string") throw new TypeError(`tensor data at index ${b} is not a string`);
-          i.setValue(p + b * u, A(m[b], n), "*");
-        }
-      } else {
-        let b = i.webnnIsGraphInput, M = i.webnnIsGraphOutput;
-        if (f !== "string" && b && M) {
-          let y = i.UTF8ToString(r);
-          if (b(o, y) || M(o, y)) {
-            let O = J(f);
-            S = q(O, w), c = "ml-tensor";
-            let B = i.webnnCreateTemporaryTensor, U = i.webnnUploadTensor;
-            if (!B || !U) throw new Error('Tensor location "ml-tensor" is not supported without using WebNN.');
-            let _ = await B(o, O, w);
-            U(_, new Uint8Array(m.buffer, m.byteOffset, m.byteLength)), p = _;
-          } else S = m.byteLength, p = i._malloc(S), n.push(p), i.HEAPU8.set(new Uint8Array(m.buffer, m.byteOffset, S), p);
-        } else S = m.byteLength, p = i._malloc(S), n.push(p), i.HEAPU8.set(new Uint8Array(m.buffer, m.byteOffset, S), p);
-      }
-    }
-    let h = i.stackSave(), v = i.stackAlloc(4 * w.length);
-    try {
-      w.forEach((b, M) => i.setValue(v + M * u, b, u === 4 ? "i32" : "i64"));
-      let m = i._OrtCreateTensor(J(f), p, S, v, w.length, $e(c));
-      m === 0 && g(`Can't create tensor for input/output. session=${o}, index=${a}.`), t.push(m);
-    } finally {
-      i.stackRestore(h);
-    }
-  }, Ke = async (e, t, n, o, r, a) => {
-    let s = E(), i = s.PTR_SIZE, u = Y.get(e);
-    if (!u) throw new Error(`cannot run inference. invalid session id: ${e}`);
-    let f = u[0], w = u[1], l = u[2], c = u[3], p = u[4], S = u[5], h = t.length, v = o.length, m = 0, b = [], M = [], y = [], O = [], B = [], U = s.stackSave(), _ = s.stackAlloc(h * i), Z = s.stackAlloc(h * i), z = s.stackAlloc(v * i), Te = s.stackAlloc(v * i);
-    try {
-      [m, b] = Fe(a), TRACE_EVENT_BEGIN("wasm prepareInputOutputTensor");
-      for (let d = 0; d < h; d++) await Je(n[d], M, O, e, w[t[d]], t[d], p);
-      for (let d = 0; d < v; d++) await Je(r[d], y, O, e, l[o[d]], h + o[d], p);
-      TRACE_EVENT_END("wasm prepareInputOutputTensor");
-      for (let d = 0; d < h; d++) s.setValue(_ + d * i, M[d], "*"), s.setValue(Z + d * i, w[t[d]], "*");
-      for (let d = 0; d < v; d++) s.setValue(z + d * i, y[d], "*"), s.setValue(Te + d * i, l[o[d]], "*");
-      s.jsepOnRunStart?.(f), s.webnnOnRunStart?.(f);
-      let x;
-      x = await s._OrtRun(f, Z, _, h, Te, v, z, m), x !== 0 && g("failed to call OrtRun().");
-      let k = [], Le = [];
-      TRACE_EVENT_BEGIN("wasm ProcessOutputTensor");
-      for (let d = 0; d < v; d++) {
-        let W = Number(s.getValue(z + d * i, "*"));
-        if (W === y[d] || B.includes(y[d])) {
-          k.push(r[d]), W !== y[d] && s._OrtReleaseTensor(W) !== 0 && g("Can't release tensor.");
-          continue;
-        }
-        let Be = s.stackSave(), F = s.stackAlloc(4 * i), H = false, T, P = 0;
-        try {
-          s._OrtGetTensorData(W, F, F + i, F + 2 * i, F + 3 * i) !== 0 && g(`Can't access output tensor data on index ${d}.`);
-          let fe = i === 4 ? "i32" : "i64", ee = Number(s.getValue(F, fe));
-          P = s.getValue(F + i, "*");
-          let _e = s.getValue(F + i * 2, "*"), yt = Number(s.getValue(F + i * 3, fe)), R = [];
-          for (let L = 0; L < yt; L++) R.push(Number(s.getValue(_e + L * i, fe)));
-          s._OrtFree(_e) !== 0 && g("Can't free memory for tensor dims.");
-          let N = R.reduce((L, I) => L * I, 1);
-          T = ae(ee);
-          let X = c?.outputPreferredLocations[o[d]];
-          if (T === "string") {
-            if (X === "gpu-buffer" || X === "ml-tensor") throw new Error("String tensor is not supported on GPU.");
-            let L = [];
-            for (let I = 0; I < N; I++) {
-              let G = s.getValue(P + I * i, "*"), te = s.getValue(P + (I + 1) * i, "*"), Pe = I === N - 1 ? void 0 : te - G;
-              L.push(s.UTF8ToString(G, Pe));
-            }
-            k.push([T, R, L, "cpu"]);
-          } else if (X === "gpu-buffer" && N > 0) {
-            let L = s.jsepGetBuffer;
-            if (!L) throw new Error('preferredLocation "gpu-buffer" is not supported without using WebGPU.');
-            let I = L(P), G = q(ee, N);
-            if (G === void 0 || !ie(T)) throw new Error(`Unsupported data type: ${T}`);
-            H = true, k.push([T, R, { gpuBuffer: I, download: s.jsepCreateDownloader(I, G, T), dispose: () => {
-              s._OrtReleaseTensor(W) !== 0 && g("Can't release tensor.");
-            } }, "gpu-buffer"]);
-          } else if (X === "ml-tensor" && N > 0) {
-            let L = s.webnnEnsureTensor, I = s.webnnIsGraphInputOutputTypeSupported;
-            if (!L || !I) throw new Error('preferredLocation "ml-tensor" is not supported without using WebNN.');
-            if (q(ee, N) === void 0 || !ue(T)) throw new Error(`Unsupported data type: ${T}`);
-            if (!I(e, T, false)) throw new Error(`preferredLocation "ml-tensor" for ${T} output is not supported by current WebNN Context.`);
-            let te = await L(e, P, ee, R, false);
-            H = true, k.push([T, R, { mlTensor: te, download: s.webnnCreateMLTensorDownloader(P, T), dispose: () => {
-              s.webnnReleaseTensorId(P), s._OrtReleaseTensor(W);
-            } }, "ml-tensor"]);
-          } else if (X === "ml-tensor-cpu-output" && N > 0) {
-            let L = s.webnnCreateMLTensorDownloader(P, T)(), I = k.length;
-            H = true, Le.push((async () => {
-              let G = [I, await L];
-              return s.webnnReleaseTensorId(P), s._OrtReleaseTensor(W), G;
-            })()), k.push([T, R, [], "cpu"]);
-          } else {
-            let L = Ge(T), I = new L(N);
-            new Uint8Array(I.buffer, I.byteOffset, I.byteLength).set(s.HEAPU8.subarray(P, P + I.byteLength)), k.push([T, R, I, "cpu"]);
-          }
-        } finally {
-          s.stackRestore(Be), T === "string" && P && s._free(P), H || s._OrtReleaseTensor(W);
-        }
-      }
-      c && !p && (s._OrtClearBoundOutputs(c.handle) !== 0 && g("Can't clear bound outputs."), Y.set(e, [f, w, l, c, p, false]));
-      for (let [d, W] of await Promise.all(Le)) k[d][2] = W;
-      return TRACE_EVENT_END("wasm ProcessOutputTensor"), k;
-    } finally {
-      s.webnnOnRunEnd?.(f), s.stackRestore(U), M.forEach((x) => s._OrtReleaseTensor(x)), y.forEach((x) => s._OrtReleaseTensor(x)), O.forEach((x) => s._free(x)), m !== 0 && s._OrtReleaseRunOptions(m), b.forEach((x) => s._free(x));
-    }
-  }, Qe = (e) => {
-    let t = E(), n = Y.get(e);
-    if (!n) throw new Error("invalid session id");
-    let o = n[0], r = t._OrtEndProfiling(o);
-    r === 0 && g("Can't get an profile file name."), t._OrtFree(r);
-  };
-});
-var Se;
-var tt;
-var rt;
-var nt;
-var ot;
-var st;
-var at;
-var it;
-var ut;
-var ct;
-var Oe = C(() => {
-  "use strict";
-  et();
-  V();
-  me();
-  Se = false, tt = false, rt = false, nt = async () => {
-    if (!tt) {
-      if (Se) throw new Error("multiple calls to 'initWasm()' detected.");
-      if (rt) throw new Error("previous call to 'initWasm()' failed.");
-      Se = true;
-      try {
-        await We(env2.wasm), await qe(env2), tt = true;
-      } catch (e) {
-        throw rt = true, e;
-      } finally {
-        Se = false;
-      }
-    }
-  }, ot = async (e) => {
-    await Ye(env2, e);
-  }, st = async (e) => Ee(e), at = async (e, t) => Ze(e, t), it = async (e) => {
-    Xe(e);
-  }, ut = async (e, t, n, o, r, a) => Ke(e, t, n, o, r, a), ct = async (e) => {
-    Qe(e);
-  };
-});
-var pt;
-var Gt;
-var ce;
-var dt = C(() => {
-  "use strict";
-  Oe();
-  ge();
-  re();
-  ye();
-  pt = (e, t) => {
-    switch (e.location) {
-      case "cpu":
-        return [e.type, e.dims, e.data, "cpu"];
-      case "gpu-buffer":
-        return [e.type, e.dims, { gpuBuffer: e.gpuBuffer }, "gpu-buffer"];
-      case "ml-tensor":
-        return [e.type, e.dims, { mlTensor: e.mlTensor }, "ml-tensor"];
-      default:
-        throw new Error(`invalid data location: ${e.location} for ${t()}`);
-    }
-  }, Gt = (e) => {
-    switch (e[3]) {
-      case "cpu":
-        return new Tensor2(e[0], e[2], e[1]);
-      case "gpu-buffer": {
-        let t = e[0];
-        if (!ie(t)) throw new Error(`not supported data type: ${t} for deserializing GPU tensor`);
-        let { gpuBuffer: n, download: o, dispose: r } = e[2];
-        return Tensor2.fromGpuBuffer(n, { dataType: t, dims: e[1], download: o, dispose: r });
-      }
-      case "ml-tensor": {
-        let t = e[0];
-        if (!ue(t)) throw new Error(`not supported data type: ${t} for deserializing MLTensor tensor`);
-        let { mlTensor: n, download: o, dispose: r } = e[2];
-        return Tensor2.fromMLTensor(n, { dataType: t, dims: e[1], download: o, dispose: r });
-      }
-      default:
-        throw new Error(`invalid data location: ${e[3]}`);
-    }
-  }, ce = class {
-    async fetchModelAndCopyToWasmMemory(t) {
-      return st(await Q(t));
-    }
-    async loadModel(t, n) {
-      TRACE_FUNC_BEGIN();
-      let o;
-      typeof t == "string" ? j ? o = await Q(t) : o = await this.fetchModelAndCopyToWasmMemory(t) : o = t, [this.sessionId, this.inputNames, this.outputNames, this.inputMetadata, this.outputMetadata] = await at(o, n), TRACE_FUNC_END();
-    }
-    async dispose() {
-      return it(this.sessionId);
-    }
-    async run(t, n, o) {
-      TRACE_FUNC_BEGIN();
-      let r = [], a = [];
-      Object.entries(t).forEach((c) => {
-        let p = c[0], S = c[1], h = this.inputNames.indexOf(p);
-        if (h === -1) throw new Error(`invalid input '${p}'`);
-        r.push(S), a.push(h);
-      });
-      let s = [], i = [];
-      Object.entries(n).forEach((c) => {
-        let p = c[0], S = c[1], h = this.outputNames.indexOf(p);
-        if (h === -1) throw new Error(`invalid output '${p}'`);
-        s.push(S), i.push(h);
-      });
-      let u = r.map((c, p) => pt(c, () => `input "${this.inputNames[a[p]]}"`)), f = s.map((c, p) => c ? pt(c, () => `output "${this.outputNames[i[p]]}"`) : null), w = await ut(this.sessionId, a, u, i, f, o), l = {};
-      for (let c = 0; c < w.length; c++) l[this.outputNames[i[c]]] = s[c] ?? Gt(w[c]);
-      return TRACE_FUNC_END(), l;
-    }
-    startProfiling() {
-    }
-    endProfiling() {
-      ct(this.sessionId);
-    }
-  };
-});
-var bt = {};
-Ot(bt, { OnnxruntimeWebAssemblyBackend: () => le, initializeFlags: () => mt, wasmBackend: () => jt });
-var mt;
-var le;
-var jt;
-var wt = C(() => {
-  "use strict";
-  Oe();
-  dt();
-  mt = () => {
-    (typeof env2.wasm.initTimeout != "number" || env2.wasm.initTimeout < 0) && (env2.wasm.initTimeout = 0);
-    let e = env2.wasm.simd;
-    if (typeof e != "boolean" && e !== void 0 && e !== "fixed" && e !== "relaxed" && (console.warn(`Property "env.wasm.simd" is set to unknown value "${e}". Reset it to \`false\` and ignore SIMD feature checking.`), env2.wasm.simd = false), typeof env2.wasm.proxy != "boolean" && (env2.wasm.proxy = false), typeof env2.wasm.trace != "boolean" && (env2.wasm.trace = false), typeof env2.wasm.numThreads != "number" || !Number.isInteger(env2.wasm.numThreads) || env2.wasm.numThreads <= 0) if (typeof self < "u" && !self.crossOriginIsolated) env2.wasm.numThreads = 1;
-    else {
-      let t = typeof navigator > "u" ? de("node:os").cpus().length : navigator.hardwareConcurrency;
-      env2.wasm.numThreads = Math.min(4, Math.ceil((t || 1) / 2));
-    }
-  }, le = class {
-    async init(t) {
-      mt(), await nt(), await ot(t);
-    }
-    async createInferenceSessionHandler(t, n) {
-      let o = new ce();
-      return await o.loadModel(t, n), o;
-    }
-  }, jt = new le();
-});
-var ve = "1.24.3";
-{
-  let e = (wt(), Tt(bt)).wasmBackend;
-  registerBackend("cpu", e, 10), registerBackend("wasm", e, 10);
-}
-Object.defineProperty(env2.versions, "web", { value: ve, enumerable: true });
-
 // src/detection.ts
 var MODEL_INPUT_SIZE = 1216;
 var CLASSES = ["TextBox", "ChoiceButton", "Signature"];
 var CONF_THRESH = 0.05;
 var IOU_THRESH = 0.45;
+var ortLib = null;
 var modelSession = null;
-async function loadModel(modelPath) {
+function getOrt(pluginDir) {
+  if (ortLib) return ortLib;
+  const ortPath = require("path").join(pluginDir, "ort.all.min.js");
+  ortLib = require(ortPath);
+  return ortLib;
+}
+async function loadModel(modelPath, pluginDir) {
   if (modelSession) return modelSession;
-  env2.wasm.numThreads = 1;
-  modelSession = await InferenceSession2.create(modelPath, {
+  const ort = getOrt(pluginDir);
+  ort.env.wasm.numThreads = 1;
+  ort.env.wasm.wasmPaths = pluginDir + "/";
+  modelSession = await ort.InferenceSession.create(modelPath, {
     executionProviders: ["wasm"]
   });
   return modelSession;
@@ -78557,7 +76560,7 @@ function preprocessPage(canvas) {
     float32[2 * S * S + i] = imgData[i * 4 + 2] / 255;
   }
   return {
-    tensor: new Tensor2("float32", float32, [1, 3, S, S]),
+    tensor: new ortLib.Tensor("float32", float32, [1, 3, S, S]),
     scale,
     dx,
     dy
@@ -78572,20 +76575,20 @@ function nms(boxes, scores, iouThresh) {
     const idx = order[i];
     keep.push(idx);
     const [ax1, ay1, ax2, ay2] = boxes[idx];
-    for (let j2 = i + 1; j2 < order.length; j2++) {
-      if (suppressed[j2]) continue;
-      const jdx = order[j2];
+    for (let j = i + 1; j < order.length; j++) {
+      if (suppressed[j]) continue;
+      const jdx = order[j];
       const [bx1, by1, bx2, by2] = boxes[jdx];
       const ix1 = Math.max(ax1, bx1), iy1 = Math.max(ay1, by1), ix2 = Math.min(ax2, bx2), iy2 = Math.min(ay2, by2);
       const inter = Math.max(0, ix2 - ix1) * Math.max(0, iy2 - iy1);
       const union = (ax2 - ax1) * (ay2 - ay1) + (bx2 - bx1) * (by2 - by1) - inter;
-      if (inter / union > iouThresh) suppressed[j2] = 1;
+      if (inter / union > iouThresh) suppressed[j] = 1;
     }
   }
   return keep;
 }
-async function detectBlanks(canvas, pageNum, modelPath) {
-  const session = await loadModel(modelPath);
+async function detectBlanks(canvas, pageNum, modelPath, pluginDir) {
+  const session = await loadModel(modelPath, pluginDir);
   const { tensor, scale, dx, dy } = preprocessPage(canvas);
   const results = await session.run({ images: tensor });
   const output = results[Object.keys(results)[0]];
@@ -78641,8 +76644,8 @@ async function detectBlanks(canvas, pageNum, modelPath) {
     for (let i = 0; i < blanks.length; i++) {
       const a = blanks[i];
       if (a.type !== "TextBox") continue;
-      for (let j2 = i + 1; j2 < blanks.length; j2++) {
-        const b = blanks[j2];
+      for (let j = i + 1; j < blanks.length; j++) {
+        const b = blanks[j];
         if (b.type !== "TextBox") continue;
         const ox1 = Math.max(a.x, b.x), ox2 = Math.min(a.x + a.width, b.x + b.width);
         const hOverlap = Math.max(0, ox2 - ox1);
@@ -78662,7 +76665,7 @@ async function detectBlanks(canvas, pageNum, modelPath) {
         a.mergedHeights = (a.mergedHeights || []).concat(
           b.mergedHeights || [b.height]
         );
-        blanks.splice(j2, 1);
+        blanks.splice(j, 1);
         merged = true;
         break;
       }
@@ -78672,9 +76675,9 @@ async function detectBlanks(canvas, pageNum, modelPath) {
   for (let i = blanks.length - 1; i >= 0; i--) {
     const a = blanks[i];
     let contained = 0;
-    for (let j2 = 0; j2 < blanks.length; j2++) {
-      if (i === j2) continue;
-      const b = blanks[j2];
+    for (let j = 0; j < blanks.length; j++) {
+      if (i === j) continue;
+      const b = blanks[j];
       const cx = b.x + b.width / 2, cy = b.y + b.height / 2;
       if (cx > a.x && cx < a.x + a.width && cy > a.y && cy < a.y + a.height)
         contained++;
@@ -78886,14 +76889,14 @@ var BlanqView = class extends import_obsidian.ItemView {
       const page = await pdf.getPage(p);
       const vp1 = page.getViewport({ scale: 1 });
       const tc = await page.getTextContent();
-      const items = tc.items.filter((it2) => it2.str != null).map((it2) => {
-        const tx = it2.transform;
-        return { str: it2.str, x: tx[4], y: tx[5] };
+      const items = tc.items.filter((it) => it.str != null).map((it) => {
+        const tx = it.transform;
+        return { str: it.str, x: tx[4], y: tx[5] };
       });
       const sorted = [...items].sort(
         (a, b) => b.y - a.y || a.x - b.x
       );
-      this.pageTexts[p] = sorted.map((it2) => it2.str).join(" ").replace(/\s+/g, " ").trim();
+      this.pageTexts[p] = sorted.map((it) => it.str).join(" ").replace(/\s+/g, " ").trim();
       const displayScale = containerW / vp1.width;
       const vp = page.getViewport({ scale: displayScale });
       const dpr = window.devicePixelRatio || 1;
@@ -78916,7 +76919,7 @@ var BlanqView = class extends import_obsidian.ItemView {
       this.log(`Detecting blanks on page ${p}...`);
       let pageBlanks;
       try {
-        pageBlanks = await detectBlanks(canvas, p, modelPath);
+        pageBlanks = await detectBlanks(canvas, p, modelPath, this.plugin.getPluginDir());
       } catch (err) {
         this.log(`Detection error: ${err.message}`, "err");
         pageBlanks = [];
@@ -79484,15 +77487,12 @@ var BlanqPlugin = class extends import_obsidian2.Plugin {
   async saveSettings() {
     await this.saveData(this.settings);
   }
+  getPluginDir() {
+    const basePath = this.app.vault.adapter.getBasePath?.() || "";
+    return import_path.default.join(basePath, this.app.vault.configDir, "plugins", this.manifest.id);
+  }
   getModelPath() {
-    const pluginDir = this.app.vault.adapter.getBasePath ? import_path.default.join(
-      this.app.vault.adapter.getBasePath(),
-      this.app.vault.configDir,
-      "plugins",
-      this.manifest.id,
-      "FFDNet-S.onnx"
-    ) : "";
-    return pluginDir;
+    return import_path.default.join(this.getPluginDir(), "FFDNet-S.onnx");
   }
   async activateView() {
     const existing = this.app.workspace.getLeavesOfType(VIEW_TYPE_BLANQ);
@@ -79564,11 +77564,4 @@ tslib/tslib.es6.js:
   OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
   PERFORMANCE OF THIS SOFTWARE.
   ***************************************************************************** *)
-
-onnxruntime-web/dist/ort.node.min.mjs:
-  (*!
-   * ONNX Runtime Web v1.24.3
-   * Copyright (c) Microsoft Corporation. All rights reserved.
-   * Licensed under the MIT License.
-   *)
 */

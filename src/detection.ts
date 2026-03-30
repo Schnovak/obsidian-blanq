@@ -1,8 +1,9 @@
 /**
  * Blank detection engine — runs YOLO ONNX model via onnxruntime-web.
  * Ported from worksheet-ai.html for offline use in Obsidian.
+ *
+ * ONNX Runtime is imported lazily to avoid crashing on plugin load.
  */
-import * as ort from "onnxruntime-web";
 
 const MODEL_INPUT_SIZE = 1216;
 const CLASSES = ["TextBox", "ChoiceButton", "Signature"];
@@ -31,13 +32,26 @@ export interface BlankBox {
   id?: number;
 }
 
-let modelSession: ort.InferenceSession | null = null;
+let ortLib: any = null;
+let modelSession: any = null;
 
-export async function loadModel(modelPath: string): Promise<ort.InferenceSession> {
+function getOrt(pluginDir: string): any {
+  if (ortLib) return ortLib;
+  // Load ort from the plugin directory at runtime (not bundled)
+  const ortPath = require("path").join(pluginDir, "ort.all.min.js");
+  ortLib = require(ortPath);
+  return ortLib;
+}
+
+export async function loadModel(modelPath: string, pluginDir: string): Promise<any> {
   if (modelSession) return modelSession;
+
+  const ort = getOrt(pluginDir);
 
   // In Obsidian/Electron we use the WASM backend
   ort.env.wasm.numThreads = 1;
+  // Point WASM files to the plugin directory
+  ort.env.wasm.wasmPaths = pluginDir + "/";
 
   modelSession = await ort.InferenceSession.create(modelPath, {
     executionProviders: ["wasm"],
@@ -50,7 +64,7 @@ export function disposeModel(): void {
 }
 
 interface PreprocessResult {
-  tensor: ort.Tensor;
+  tensor: any;
   scale: number;
   dx: number;
   dy: number;
@@ -83,7 +97,7 @@ function preprocessPage(canvas: HTMLCanvasElement): PreprocessResult {
   }
 
   return {
-    tensor: new ort.Tensor("float32", float32, [1, 3, S, S]),
+    tensor: new ortLib!.Tensor("float32", float32, [1, 3, S, S]),
     scale,
     dx,
     dy,
@@ -125,9 +139,10 @@ function nms(
 export async function detectBlanks(
   canvas: HTMLCanvasElement,
   pageNum: number,
-  modelPath: string
+  modelPath: string,
+  pluginDir: string
 ): Promise<BlankBox[]> {
-  const session = await loadModel(modelPath);
+  const session = await loadModel(modelPath, pluginDir);
   const { tensor, scale, dx, dy } = preprocessPage(canvas);
   const results = await session.run({ images: tensor });
 

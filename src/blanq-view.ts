@@ -284,7 +284,7 @@ export class BlanqView extends ItemView {
       this.log(`Detecting blanks on page ${p}...`);
       let pageBlanks: BlankBox[];
       try {
-        pageBlanks = await detectBlanks(canvas, p, modelPath);
+        pageBlanks = await detectBlanks(canvas, p, modelPath, this.plugin.getPluginDir());
       } catch (err: any) {
         this.log(`Detection error: ${err.message}`, "err");
         pageBlanks = [];

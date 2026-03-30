@@ -11,12 +11,17 @@ function copyAssets() {
   const outDir = __dirname;
   const ortDir = join(__dirname, "node_modules", "onnxruntime-web", "dist");
 
-  // Copy ONNX Runtime WASM files
+  // Copy ONNX Runtime WASM files + JS bundle
   if (existsSync(ortDir)) {
     for (const f of readdirSync(ortDir)) {
       if (f.endsWith(".wasm") || f.endsWith(".mjs")) {
         copyFileSync(join(ortDir, f), join(outDir, f));
       }
+    }
+    // Copy the UMD bundle for runtime loading
+    const ortJs = join(ortDir, "ort.all.min.js");
+    if (existsSync(ortJs)) {
+      copyFileSync(ortJs, join(outDir, "ort.all.min.js"));
     }
   }
 
@@ -33,7 +38,7 @@ const ctx = await esbuild.context({
   outfile: "main.js",
   platform: "node",
   format: "cjs",
-  external: ["obsidian", "electron", "canvas"],
+  external: ["obsidian", "electron", "canvas", "./ort.all.min.js"],
   sourcemap: false,
   treeShaking: true,
   define: {

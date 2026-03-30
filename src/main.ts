@@ -93,21 +93,13 @@ export default class BlanqPlugin extends Plugin {
     await this.saveData(this.settings);
   }
 
-  getModelPath(): string {
-    // The model file is in the plugin directory
-    const pluginDir = (this.app.vault.adapter as any).getBasePath
-      ? path.join(
-          (this.app.vault.adapter as any).getBasePath(),
-          this.app.vault.configDir,
-          "plugins",
-          this.manifest.id,
-          "FFDNet-S.onnx"
-        )
-      : "";
+  getPluginDir(): string {
+    const basePath = (this.app.vault.adapter as any).getBasePath?.() || "";
+    return path.join(basePath, this.app.vault.configDir, "plugins", this.manifest.id);
+  }
 
-    // For ONNX Runtime Web, use a file:// URL or vault adapter path
-    // In Electron, we can use the absolute path
-    return pluginDir;
+  getModelPath(): string {
+    return path.join(this.getPluginDir(), "FFDNet-S.onnx");
   }
 
   private async activateView(): Promise<void> {

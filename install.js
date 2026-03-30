@@ -372,7 +372,7 @@ function installToVaults(vaults, modelPath) {
   const filesToCopy = ["main.js", "manifest.json"];
 
   for (const f of fs.readdirSync(SCRIPT_DIR)) {
-    if (f.endsWith(".wasm") || f.endsWith(".mjs")) {
+    if (f.endsWith(".wasm") || f.endsWith(".mjs") || f === "ort.all.min.js") {
       filesToCopy.push(f);
     }
   }
