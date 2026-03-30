@@ -78784,7 +78784,7 @@ var BlanqView = class extends import_obsidian.ItemView {
     aiBtn.disabled = true;
     aiBtn.addEventListener("click", () => this.aiFill(aiBtn));
     const exportBtn = toolbar.createEl("button", {
-      text: "Export PDF",
+      text: "Save",
       cls: "blanq-btn blanq-btn-dl"
     });
     exportBtn.style.display = "none";
@@ -79270,18 +79270,22 @@ Respond ONLY with JSON: [{"id": 1, "answer": "..."}, ...]`;
         }
       }
       const out = await doc.save();
-      const blob = new Blob([out], { type: "application/pdf" });
-      const name = this.pdfFile ? this.pdfFile.name.replace(/\.pdf$/i, "") + "_filled.pdf" : "filled.pdf";
-      const folder = this.pdfFile?.parent?.path || "";
-      const path2 = folder ? `${folder}/${name}` : name;
-      const existing = this.app.vault.getAbstractFileByPath(path2);
-      if (existing instanceof import_obsidian.TFile) {
-        await this.app.vault.modifyBinary(existing, out);
+      if (this.pdfFile) {
+        await this.app.vault.modifyBinary(this.pdfFile, out);
+        this.pdfBytes = new Uint8Array(out);
+        this.log(`Saved to ${this.pdfFile.path}`, "ok");
+        new import_obsidian.Notice(`Blanq: Saved ${this.pdfFile.name}`);
       } else {
-        await this.app.vault.createBinary(path2, out);
+        const path2 = "blanq-filled.pdf";
+        const existing = this.app.vault.getAbstractFileByPath(path2);
+        if (existing instanceof import_obsidian.TFile) {
+          await this.app.vault.modifyBinary(existing, out);
+        } else {
+          await this.app.vault.createBinary(path2, out);
+        }
+        this.log(`Saved to ${path2}`, "ok");
+        new import_obsidian.Notice(`Blanq: Saved to ${path2}`);
       }
-      this.log(`Exported to ${path2}`, "ok");
-      new import_obsidian.Notice(`Blanq: Exported to ${path2}`);
     } catch (err) {
       this.log(`Export error: ${err.message}`, "err");
     }
