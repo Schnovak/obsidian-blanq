@@ -76562,6 +76562,23 @@ function getOrt(pluginDir) {
     console.log(`[Blanq] Loading ONNX Runtime WASM from: ${ortPath}`);
     ortLib = require(ortPath);
     console.log("[Blanq] ONNX Runtime WASM loaded OK");
+    const { pathToFileURL } = require("url");
+    const wasmPrefix = pathToFileURL(pluginDir).href + "/";
+    console.log(`[Blanq] Setting wasmPaths prefix: ${wasmPrefix}`);
+    ortLib.env.wasm.numThreads = 1;
+    ortLib.env.wasm.proxy = false;
+    ortLib.env.wasm.wasmPaths = wasmPrefix;
+    const wasmFile = pathMod.join(pluginDir, "ort-wasm-simd-threaded.wasm");
+    if (fs.existsSync(wasmFile)) {
+      const wasmBuf = fs.readFileSync(wasmFile);
+      ortLib.env.wasm.wasmBinary = wasmBuf.buffer.slice(
+        wasmBuf.byteOffset,
+        wasmBuf.byteOffset + wasmBuf.byteLength
+      );
+      console.log(`[Blanq] Pre-loaded WASM binary: ${(wasmBuf.length / 1e6).toFixed(1)} MB`);
+    } else {
+      console.warn(`[Blanq] WASM binary not found at: ${wasmFile}`);
+    }
     return ortLib;
   }
   throw new Error("No ONNX Runtime found in plugin directory");
@@ -76574,14 +76591,6 @@ async function loadModel(modelPath, pluginDir) {
     throw new Error(`Model not found at: ${modelPath}`);
   }
   const ort = getOrt(pluginDir);
-  console.log("[Blanq] ort keys:", Object.keys(ort).join(", "));
-  console.log("[Blanq] InferenceSession:", typeof ort.InferenceSession);
-  console.log("[Blanq] InferenceSession.create:", typeof ort.InferenceSession?.create);
-  if (ort.env) {
-    console.log("[Blanq] ort.env.wasm:", JSON.stringify(ort.env?.wasm || {}));
-    console.log("[Blanq] ort.env.logLevel:", ort.env?.logLevel);
-    ort.env.logLevel = "verbose";
-  }
   console.log("[Blanq] Reading model into memory...");
   const modelBuffer = fs.readFileSync(modelPath);
   const arrayBuffer = modelBuffer.buffer.slice(

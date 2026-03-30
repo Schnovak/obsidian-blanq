@@ -88,6 +88,30 @@ function getOrt(pluginDir: string): any {
     console.log(`[Blanq] Loading ONNX Runtime WASM from: ${ortPath}`);
     ortLib = require(ortPath);
     console.log("[Blanq] ONNX Runtime WASM loaded OK");
+
+    // Configure WASM paths so ort can find .mjs glue and .wasm binary
+    // Obsidian blocks file:// script loads, but import() works with file:// URLs in Electron
+    const { pathToFileURL } = require("url");
+    const wasmPrefix = pathToFileURL(pluginDir).href + "/";
+    console.log(`[Blanq] Setting wasmPaths prefix: ${wasmPrefix}`);
+
+    ortLib.env.wasm.numThreads = 1;
+    ortLib.env.wasm.proxy = false;
+    ortLib.env.wasm.wasmPaths = wasmPrefix;
+
+    // Pre-load WASM binary to avoid fetch issues
+    const wasmFile = pathMod.join(pluginDir, "ort-wasm-simd-threaded.wasm");
+    if (fs.existsSync(wasmFile)) {
+      const wasmBuf = fs.readFileSync(wasmFile);
+      ortLib.env.wasm.wasmBinary = wasmBuf.buffer.slice(
+        wasmBuf.byteOffset,
+        wasmBuf.byteOffset + wasmBuf.byteLength
+      );
+      console.log(`[Blanq] Pre-loaded WASM binary: ${(wasmBuf.length / 1e6).toFixed(1)} MB`);
+    } else {
+      console.warn(`[Blanq] WASM binary not found at: ${wasmFile}`);
+    }
+
     return ortLib;
   }
 
@@ -104,17 +128,6 @@ export async function loadModel(modelPath: string, pluginDir: string): Promise<a
   }
 
   const ort = getOrt(pluginDir);
-
-  // Log what we got from ort
-  console.log("[Blanq] ort keys:", Object.keys(ort).join(", "));
-  console.log("[Blanq] InferenceSession:", typeof ort.InferenceSession);
-  console.log("[Blanq] InferenceSession.create:", typeof ort.InferenceSession?.create);
-  if (ort.env) {
-    console.log("[Blanq] ort.env.wasm:", JSON.stringify(ort.env?.wasm || {}));
-    console.log("[Blanq] ort.env.logLevel:", ort.env?.logLevel);
-    // Enable verbose logging
-    ort.env.logLevel = "verbose";
-  }
 
   // Read model as ArrayBuffer
   console.log("[Blanq] Reading model into memory...");
