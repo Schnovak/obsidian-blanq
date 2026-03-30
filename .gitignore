@@ -1,9 +1,34 @@
 node_modules/
 dist/
 
-# Built WASM files (copied from node_modules during build)
+# Built runtime files (copied from node_modules during build)
 ort-*.wasm
 ort-*.mjs
+ort*.mjs
+ort*.min.mjs
+ort*.bundle.min.mjs
+ort.node.min.mjs
 
-# The model is large — track with Git LFS or download separately
+# Only keep ort.all.min.js (needed at runtime)
+# Ignore all other ort JS/MJS variants
+ort.mjs
+ort.min.mjs
+ort.all.mjs
+ort.all.min.mjs
+ort.all.bundle.min.mjs
+ort.bundle.min.mjs
+ort.wasm.mjs
+ort.wasm.min.mjs
+ort.wasm.bundle.min.mjs
+ort.webgl.mjs
+ort.webgl.min.mjs
+ort.webgpu.mjs
+ort.webgpu.min.mjs
+ort.webgpu.bundle.min.mjs
+ort.jspi.mjs
+ort.jspi.min.mjs
+ort.jspi.bundle.min.mjs
+ort.node.min.mjs
+
+# The model is large — downloaded from GitHub release
 FFDNet-S.onnx
