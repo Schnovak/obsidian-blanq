@@ -14,6 +14,8 @@ export class BlanqView extends FileView {
   private pageTexts: Record<number, string> = {};
   private addBlankMode = false;
   private uiBuilt = false;
+  private savedBlanks: any[] | null = null;
+  private savedFont: string | null = null;
 
   constructor(leaf: WorkspaceLeaf, plugin: BlanqPlugin) {
     super(leaf);
@@ -69,9 +71,61 @@ export class BlanqView extends FileView {
 
   private async loadPdfFromFile(file: TFile): Promise<void> {
     const data = await this.app.vault.readBinary(file);
-    this.pdfBytes = new Uint8Array(data);
-    this.leaf.updateHeader();
+    let pdfBytes = new Uint8Array(data);
+
+    // Check for embedded Blanq project data (saved by a previous export)
+    const embedded = await this.extractWsaiData(pdfBytes);
+    if (embedded) {
+      // Use the original un-annotated PDF and restore blanks
+      if (embedded.originalPdf) {
+        pdfBytes = new Uint8Array(embedded.originalPdf);
+      }
+      this.pdfBytes = pdfBytes;
+      this.leaf.updateHeader();
+      this.savedBlanks = embedded.data.blanks;
+      this.savedFont = embedded.data.font;
+    } else {
+      this.pdfBytes = pdfBytes;
+      this.leaf.updateHeader();
+      this.savedBlanks = null;
+      this.savedFont = null;
+    }
+
     await this.analyze();
+  }
+
+  private async extractWsaiData(pdfBytes: Uint8Array): Promise<{
+    data: any; originalPdf: Uint8Array | null;
+  } | null> {
+    try {
+      const { PDFDocument, PDFName, PDFDict, PDFArray, PDFStream, decodePDFRawStream } = await import("pdf-lib");
+      const doc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
+      const catalog = doc.catalog;
+      if (!catalog.has(PDFName.of("Names"))) return null;
+      const Names = catalog.lookup(PDFName.of("Names"), PDFDict);
+      if (!Names.has(PDFName.of("EmbeddedFiles"))) return null;
+      let EF = Names.lookup(PDFName.of("EmbeddedFiles"), PDFDict);
+      if (!EF.has(PDFName.of("Names")) && EF.has(PDFName.of("Kids"))) {
+        EF = EF.lookup(PDFName.of("Kids"), PDFArray).lookup(0, PDFDict);
+      }
+      if (!EF.has(PDFName.of("Names"))) return null;
+      const efNames = EF.lookup(PDFName.of("Names"), PDFArray);
+      const attachments: Record<string, Uint8Array> = {};
+      for (let i = 0; i < efNames.size(); i += 2) {
+        const nameObj = efNames.lookup(i) as any;
+        const name = nameObj.decodeText ? nameObj.decodeText() : nameObj.toString();
+        const spec = efNames.lookup(i + 1, PDFDict);
+        const efDict = spec.lookup(PDFName.of("EF"), PDFDict);
+        const stream = efDict.lookup(PDFName.of("F"), PDFStream);
+        attachments[name] = decodePDFRawStream(stream as any).decode();
+      }
+      if (!attachments["wsai-data.json"]) return null;
+      const dataStr = new TextDecoder().decode(attachments["wsai-data.json"]);
+      return {
+        data: JSON.parse(dataStr),
+        originalPdf: attachments["wsai-original.pdf"] || null,
+      };
+    } catch { return null; }
   }
 
   private buildUI(container: HTMLElement): void {
@@ -344,42 +398,76 @@ export class BlanqView extends FileView {
       return;
     }
 
-    // Phase 2: Run blank detection (non-fatal — PDF is already visible)
-    const modelPath = this.plugin.getModelPath();
-    const pluginDir = this.plugin.getPluginDir();
-    const fontFamily =
-      this._refs.fontSel.value === "jetbrains" ? "JetBrains Mono" : "Kalam";
+    // Phase 2: Restore saved blanks or run detection
+    const fontFamily = this.savedFont === "jetbrains" ? "JetBrains Mono"
+      : this.savedFont === "kalam" ? "Kalam"
+      : (this._refs.fontSel.value === "jetbrains" ? "JetBrains Mono" : "Kalam");
+    if (this.savedFont) {
+      this._refs.fontSel.value = this.savedFont;
+    }
     let allBlanks: BlankBox[] = [];
 
-    this.log("Detecting blanks...");
-
-    for (const pg of pages) {
-      try {
-        const pageBlanks = await detectBlanks(pg.canvas, pg.pageNum, modelPath, pluginDir);
-        console.log(`[Blanq] Page ${pg.pageNum}: detected ${pageBlanks.length} blanks`);
-        this.log(`${pageBlanks.length} blank(s) on page ${pg.pageNum}`, "ok");
-
-        pageBlanks.sort((a, b) => a.y - b.y || a.x - b.x);
-
-        for (const b of pageBlanks) {
-          const ox = b.x / pg.dpr,
-            oy = b.y / pg.dpr,
-            ow = b.width / pg.dpr,
-            oh = b.height / pg.dpr;
-          const ta = this.createOverlayInput(pg.wrap, b, ox, oy, ow, oh, fontFamily, pg.dpr);
-          ta.placeholder = "#" + (allBlanks.length + pageBlanks.indexOf(b) + 1);
-
-          b.vw = pg.vp1Width;
-          b.vh = pg.vp1Height;
-          b.displayScale = pg.displayScale;
-          b.dpr = pg.dpr;
+    if (this.savedBlanks) {
+      // Restore blanks from embedded project data
+      this.log("Restoring saved blanks...");
+      for (const sb of this.savedBlanks) {
+        const pg = pages.find(p => p.pageNum === sb.page);
+        if (!pg) continue;
+        const b: BlankBox = {
+          x: sb.x, y: sb.y, width: sb.width, height: sb.height,
+          confidence: sb.confidence, page: sb.page,
+          canvasW: sb.canvasW, canvasH: sb.canvasH,
+          answer: sb.answer || "", type: sb.type,
+          mergedHeights: sb.mergedHeights || [sb.height],
+          lineHeightPx: sb.lineHeightPx, lineCount: sb.lineCount,
+          vw: pg.vp1Width, vh: pg.vp1Height,
+          displayScale: pg.displayScale, dpr: pg.dpr,
+        };
+        const ox = b.x / pg.dpr, oy = b.y / pg.dpr,
+          ow = b.width / pg.dpr, oh = b.height / pg.dpr;
+        const ta = this.createOverlayInput(pg.wrap, b, ox, oy, ow, oh, fontFamily, pg.dpr);
+        ta.placeholder = "#" + (allBlanks.length + 1);
+        if (b.answer) {
+          ta.value = b.answer;
+          ta.classList.add("filled");
         }
+        allBlanks.push(b);
+      }
+      this.log(`Restored ${allBlanks.length} blank(s) with answers`, "ok");
+      this.savedBlanks = null;
+      this.savedFont = null;
+    } else {
+      // Run model detection
+      const modelPath = this.plugin.getModelPath();
+      const pluginDir = this.plugin.getPluginDir();
+      this.log("Detecting blanks...");
 
-        allBlanks.push(...pageBlanks);
-      } catch (err: any) {
-        console.error(`[Blanq] Page ${pg.pageNum}: detection failed:`, err);
-        this.log(`Detection failed on page ${pg.pageNum}: ${err.message}`, "err");
-        // Continue with remaining pages — don't abort everything
+      for (const pg of pages) {
+        try {
+          const pageBlanks = await detectBlanks(pg.canvas, pg.pageNum, modelPath, pluginDir);
+          this.log(`${pageBlanks.length} blank(s) on page ${pg.pageNum}`, "ok");
+
+          pageBlanks.sort((a, b) => a.y - b.y || a.x - b.x);
+
+          for (const b of pageBlanks) {
+            const ox = b.x / pg.dpr,
+              oy = b.y / pg.dpr,
+              ow = b.width / pg.dpr,
+              oh = b.height / pg.dpr;
+            const ta = this.createOverlayInput(pg.wrap, b, ox, oy, ow, oh, fontFamily, pg.dpr);
+            ta.placeholder = "#" + (allBlanks.length + pageBlanks.indexOf(b) + 1);
+
+            b.vw = pg.vp1Width;
+            b.vh = pg.vp1Height;
+            b.displayScale = pg.displayScale;
+            b.dpr = pg.dpr;
+          }
+
+          allBlanks.push(...pageBlanks);
+        } catch (err: any) {
+          console.error(`[Blanq] Page ${pg.pageNum}: detection failed:`, err);
+          this.log(`Detection failed on page ${pg.pageNum}: ${err.message}`, "err");
+        }
       }
     }
 
@@ -790,37 +878,61 @@ export class BlanqView extends FileView {
         return wrapped.length ? wrapped : [""];
       }
 
-      for (const b of this.blanks) {
+      // Gather actual rendered font sizes from the DOM textareas
+      const textareas = this._refs.viewer.querySelectorAll<HTMLTextAreaElement>(".blanq-overlay-input");
+
+      for (let i = 0; i < this.blanks.length; i++) {
+        const b = this.blanks[i];
         const ansText = b.answer?.trim();
         if (!ansText) continue;
         const pg = pages[b.page - 1];
-        const pgW = pg.getWidth(),
-          pgH = pg.getHeight();
-        const sx = pgW / b.canvasW,
-          sy = pgH / b.canvasH;
-        const pdfX = b.x * sx;
-        const pdfY = pgH - (b.y + b.height) * sy;
-        const pdfW = b.width * sx;
-        const pdfH = b.height * sy;
+        const rot = pg.getRotation().angle % 360;
+        const rawW = pg.getWidth(), rawH = pg.getHeight();
+        const isRotated90 = (rot === 90 || rot === 270);
+        const effW = isRotated90 ? rawH : rawW;
+        const effH = isRotated90 ? rawW : rawH;
+        const dpr = b.dpr || window.devicePixelRatio || 1;
 
-        const nLines =
-          b.lineCount || Math.max(1, Math.round(pdfH / 14));
-        const lineH = b.lineHeightPx
-          ? (b.lineHeightPx * sy) / (b.dpr || 1)
-          : pdfH / nLines;
-        let fs = Math.min(lineH * 0.7, 14);
+        // Convert canvas pixel coords to effective PDF points
+        const sx = effW / b.canvasW, sy = effH / b.canvasH;
+        const effX = b.x * sx;
+        const effY = effH - (b.y + b.height) * sy;
+        const effPdfW = b.width * sx;
+        const effPdfH = b.height * sy;
+
+        // Read actual rendered font size from the DOM textarea
+        const ta = textareas[i];
+        const cssFontSize = ta ? parseFloat(ta.style.fontSize) : 0;
+        const cssLineHeight = ta ? parseFloat(ta.style.lineHeight) : 0;
+        const cssToPdf = effW / (b.canvasW / dpr);
+
+        let fs: number, lineH: number;
+        if (cssFontSize > 0 && cssLineHeight > 0) {
+          fs = cssFontSize * cssToPdf;
+          lineH = cssLineHeight * cssToPdf;
+        } else {
+          const nLines = Math.max(1, Math.round(effPdfH / (effPdfH > 30 ? 14 : effPdfH)));
+          lineH = effPdfH / nLines;
+          fs = lineH * 0.7;
+        }
 
         const ansLines = ansText.split("\n");
         let allWrapped: string[] = [];
-        while (fs >= 5) {
+        let tryFs = fs;
+        const wrapW = effPdfW - 6 * cssToPdf;
+        while (tryFs >= 3) {
           allWrapped = [];
           for (const line of ansLines)
-            allWrapped.push(...wrapLine(line, handFont, fs, pdfW - 4));
-          if (allWrapped.length <= nLines) break;
-          fs -= 1;
+            allWrapped.push(...wrapLine(line, handFont, tryFs, wrapW));
+          const maxLines2 = Math.max(1, Math.floor(effPdfH / lineH + 0.1));
+          if (allWrapped.length <= maxLines2) break;
+          tryFs -= 0.5;
         }
-        if (allWrapped.length > nLines)
-          allWrapped = allWrapped.slice(0, nLines);
+        fs = tryFs;
+        const maxLines = Math.max(1, Math.floor(effPdfH / lineH + 0.1));
+        if (allWrapped.length > maxLines)
+          allWrapped = allWrapped.slice(0, maxLines);
+        const padX = 3 * cssToPdf;
 
         for (let k = 0; k < allWrapped.length; k++) {
           let safeText = "";
@@ -832,15 +944,42 @@ export class BlanqView extends FileView {
               safeText += "?";
             }
           }
+          const eTextX = effX + padX;
+          const eTextY = effY + effPdfH - lineH * (k + 1) + (lineH - fs) * 0.35;
+          let drawX: number, drawY: number;
+          if (rot === 90) { drawX = effH - eTextY; drawY = eTextX; }
+          else if (rot === 180) { drawX = effW - eTextX; drawY = effH - eTextY; }
+          else if (rot === 270) { drawX = eTextY; drawY = effW - eTextX; }
+          else { drawX = eTextX; drawY = eTextY; }
           pg.drawText(safeText, {
-            x: pdfX + 2,
-            y: pdfY + pdfH - lineH * (k + 1) + lineH * 0.2,
-            size: fs,
-            font: handFont,
-            color: ansTextC,
+            x: drawX, y: drawY, size: fs, font: handFont, color: ansTextC,
+            rotate: (await import("pdf-lib")).degrees(rot),
           });
         }
       }
+
+      // Embed project data so blanks + answers can be restored on re-open
+      const wsaiData = {
+        version: 1,
+        font: fontChoice,
+        blanks: this.blanks.map(b => ({
+          x: b.x, y: b.y, width: b.width, height: b.height,
+          page: b.page, canvasW: b.canvasW, canvasH: b.canvasH,
+          confidence: b.confidence, type: b.type, answer: b.answer || "",
+          mergedHeights: b.mergedHeights || null,
+          lineHeightPx: b.lineHeightPx || null,
+          lineCount: b.lineCount || null,
+          vw: b.vw, vh: b.vh, displayScale: b.displayScale, dpr: b.dpr,
+        })),
+      };
+      await doc.attach(
+        new TextEncoder().encode(JSON.stringify(wsaiData)),
+        "wsai-data.json",
+        { mimeType: "application/json", description: "Blanq project data" }
+      );
+      await doc.attach(this.pdfBytes!, "wsai-original.pdf", {
+        mimeType: "application/pdf", description: "Original unmodified PDF",
+      });
 
       const out = await doc.save();
 
