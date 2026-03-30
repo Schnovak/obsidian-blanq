@@ -77240,11 +77240,15 @@ var BlanqView = class extends import_obsidian.FileView {
         const cur = page.getRotation().angle;
         page.setRotation(degrees((cur + 90) % 360));
       }
-      this.pdfBytes = new Uint8Array(await doc.save());
+      const saved = await doc.save();
+      this.pdfBytes = new Uint8Array(saved);
+      if (this.file) {
+        await this.app.vault.modifyBinary(this.file, saved);
+      }
       this.blanks = [];
       this.pageTexts = {};
       await this.analyze();
-      this.log("Rotated 90\xB0", "ok");
+      this.log("Rotated 90\xB0 and saved", "ok");
     } catch (err) {
       this.log(`Rotate failed: ${err.message}`, "err");
     }
