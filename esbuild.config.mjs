@@ -25,6 +25,12 @@ function copyAssets() {
     }
   }
 
+  // Copy pdf.js worker
+  const pdfWorker = join(__dirname, "node_modules", "pdfjs-dist", "build", "pdf.worker.min.js");
+  if (existsSync(pdfWorker)) {
+    copyFileSync(pdfWorker, join(outDir, "pdf.worker.min.js"));
+  }
+
   // Copy the ONNX model from parent project
   const modelSrc = join(__dirname, "..", "FFDNet-S.onnx");
   if (existsSync(modelSrc)) {

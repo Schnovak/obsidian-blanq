@@ -223,9 +223,12 @@ export class BlanqView extends ItemView {
     // Dynamic import of pdfjs
     console.log("[Blanq] Importing pdfjs-dist...");
     const pdfjsLib = await import("pdfjs-dist");
-    // Set worker to empty to use fake worker (simpler in Obsidian)
-    pdfjsLib.GlobalWorkerOptions.workerSrc = "";
-    console.log("[Blanq] pdfjs loaded OK");
+    // Use the bundled worker file from pdfjs-dist
+    const workerPath = require("path").join(
+      this.plugin.getPluginDir(), "pdf.worker.min.js"
+    );
+    pdfjsLib.GlobalWorkerOptions.workerSrc = workerPath;
+    console.log(`[Blanq] pdfjs loaded, worker: ${workerPath}`);
 
     this.log("Parsing PDF...");
     console.log("[Blanq] Calling getDocument...");
