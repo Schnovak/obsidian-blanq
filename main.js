@@ -77654,6 +77654,23 @@ var BlanqPlugin = class extends import_obsidian2.Plugin {
       })
     );
     this.addSettingTab(new BlanqSettingTab(this.app, this));
+    this.app.workspace.onLayoutReady(() => {
+      this.replacePdfLeaves();
+    });
+  }
+  replacePdfLeaves() {
+    this.app.workspace.iterateAllLeaves((leaf) => {
+      const state = leaf.getViewState();
+      if (state.type === "pdf" && state.state?.file) {
+        const file = this.app.vault.getAbstractFileByPath(state.state.file);
+        if (file instanceof import_obsidian2.TFile && file.extension === "pdf") {
+          leaf.setViewState({
+            type: VIEW_TYPE_BLANQ,
+            state: { file: file.path }
+          });
+        }
+      }
+    });
   }
   async onunload() {
     this.app.workspace.detachLeavesOfType(VIEW_TYPE_BLANQ);

@@ -83,6 +83,27 @@ export default class BlanqPlugin extends Plugin {
 
     // Settings tab
     this.addSettingTab(new BlanqSettingTab(this.app, this));
+
+    // On startup, replace any restored default PDF viewer tabs with Blanq
+    this.app.workspace.onLayoutReady(() => {
+      this.replacePdfLeaves();
+    });
+  }
+
+  private replacePdfLeaves(): void {
+    // Find all leaves using the built-in PDF viewer and swap them to Blanq
+    this.app.workspace.iterateAllLeaves((leaf) => {
+      const state = leaf.getViewState();
+      if (state.type === "pdf" && state.state?.file) {
+        const file = this.app.vault.getAbstractFileByPath(state.state.file);
+        if (file instanceof TFile && file.extension === "pdf") {
+          leaf.setViewState({
+            type: VIEW_TYPE_BLANQ,
+            state: { file: file.path },
+          });
+        }
+      }
+    });
   }
 
   async onunload(): Promise<void> {
