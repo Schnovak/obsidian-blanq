@@ -76972,6 +76972,11 @@ var BlanqView = class extends import_obsidian.FileView {
         if (active && !active.classList.contains("blanq-overlay-input") && (active.tagName === "INPUT" || active.tagName === "SELECT"))
           return;
         inputs.sort((a, b) => {
+          const ap = a.closest(".blanq-pdf-page");
+          const bp = b.closest(".blanq-pdf-page");
+          const apOff = ap ? ap.offsetTop : 0;
+          const bpOff = bp ? bp.offsetTop : 0;
+          if (apOff !== bpOff) return apOff - bpOff;
           const ay = parseFloat(a.style.top) || 0, by = parseFloat(b.style.top) || 0;
           if (Math.abs(ay - by) > 5) return ay - by;
           return (parseFloat(a.style.left) || 0) - (parseFloat(b.style.left) || 0);
