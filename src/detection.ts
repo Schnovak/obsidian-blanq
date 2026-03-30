@@ -309,9 +309,12 @@ export async function detectBlanks(
     for (let i = 0; i < blanks.length; i++) {
       const a = blanks[i];
       if (a.type !== "TextBox") continue;
+      // Only merge wide boxes (>60% of page width)
+      if (a.width / canvas.width < 0.6) continue;
       for (let j = i + 1; j < blanks.length; j++) {
         const b = blanks[j];
         if (b.type !== "TextBox") continue;
+        if (b.width / canvas.width < 0.6) continue;
         const ox1 = Math.max(a.x, b.x),
           ox2 = Math.min(a.x + a.width, b.x + b.width);
         const hOverlap = Math.max(0, ox2 - ox1);
