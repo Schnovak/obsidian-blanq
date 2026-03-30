@@ -223,12 +223,16 @@ export class BlanqView extends ItemView {
     // Dynamic import of pdfjs
     console.log("[Blanq] Importing pdfjs-dist...");
     const pdfjsLib = await import("pdfjs-dist");
-    // Use the bundled worker file from pdfjs-dist
+    // Load worker source as a blob URL (file:// is blocked in Obsidian)
+    const fs = require("fs");
     const workerPath = require("path").join(
       this.plugin.getPluginDir(), "pdf.worker.min.js"
     );
-    pdfjsLib.GlobalWorkerOptions.workerSrc = workerPath;
-    console.log(`[Blanq] pdfjs loaded, worker: ${workerPath}`);
+    console.log(`[Blanq] Reading worker from: ${workerPath}`);
+    const workerCode = fs.readFileSync(workerPath, "utf8");
+    const blob = new Blob([workerCode], { type: "application/javascript" });
+    pdfjsLib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(blob);
+    console.log("[Blanq] pdfjs loaded, worker blob created");
 
     this.log("Parsing PDF...");
     console.log("[Blanq] Calling getDocument...");

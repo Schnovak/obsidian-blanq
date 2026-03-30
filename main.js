@@ -76894,12 +76894,16 @@ var BlanqView = class extends import_obsidian.ItemView {
       console.log("[Blanq] Starting PDF analysis...");
       console.log("[Blanq] Importing pdfjs-dist...");
       const pdfjsLib = await Promise.resolve().then(() => __toESM(require_pdf()));
+      const fs = require("fs");
       const workerPath = require("path").join(
         this.plugin.getPluginDir(),
         "pdf.worker.min.js"
       );
-      pdfjsLib.GlobalWorkerOptions.workerSrc = workerPath;
-      console.log(`[Blanq] pdfjs loaded, worker: ${workerPath}`);
+      console.log(`[Blanq] Reading worker from: ${workerPath}`);
+      const workerCode = fs.readFileSync(workerPath, "utf8");
+      const blob = new Blob([workerCode], { type: "application/javascript" });
+      pdfjsLib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(blob);
+      console.log("[Blanq] pdfjs loaded, worker blob created");
       this.log("Parsing PDF...");
       console.log("[Blanq] Calling getDocument...");
       const pdf = await pdfjsLib.getDocument({ data: this.pdfBytes.slice() }).promise;
