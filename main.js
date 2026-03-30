@@ -77657,6 +77657,11 @@ var BlanqPlugin = class extends import_obsidian2.Plugin {
     this.app.workspace.onLayoutReady(() => {
       this.replacePdfLeaves();
     });
+    this.registerEvent(
+      this.app.workspace.on("layout-change", () => {
+        this.replacePdfLeaves();
+      })
+    );
   }
   replacePdfLeaves() {
     this.app.workspace.iterateAllLeaves((leaf) => {

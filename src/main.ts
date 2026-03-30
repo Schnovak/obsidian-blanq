@@ -88,6 +88,14 @@ export default class BlanqPlugin extends Plugin {
     this.app.workspace.onLayoutReady(() => {
       this.replacePdfLeaves();
     });
+
+    // Watch for layout changes — other plugins (e.g. Excalidraw) can
+    // re-register the pdf extension or open PDFs in the default viewer
+    this.registerEvent(
+      this.app.workspace.on("layout-change", () => {
+        this.replacePdfLeaves();
+      })
+    );
   }
 
   private replacePdfLeaves(): void {
