@@ -76527,17 +76527,12 @@ function getOrt(pluginDir) {
   const pluginNodeModules = pathMod.join(pluginDir, "node_modules");
   const ortNodePkg = pathMod.join(pluginNodeModules, "onnxruntime-node");
   console.log(`[Blanq] Checking for native ort at: ${ortNodePkg}`);
-  console.log(`[Blanq] node_modules exists: ${fs.existsSync(pluginNodeModules)}`);
   console.log(`[Blanq] onnxruntime-node exists: ${fs.existsSync(ortNodePkg)}`);
-  if (fs.existsSync(pluginNodeModules)) {
-    console.log(`[Blanq] node_modules contents: ${fs.readdirSync(pluginNodeModules).join(", ")}`);
-  }
   if (fs.existsSync(ortNodePkg)) {
     console.log(`[Blanq] Found onnxruntime-node at: ${ortNodePkg}`);
-    const origResolvePaths = Module._resolveLookupPaths;
     const origResolve = Module._resolveFilename;
     Module._resolveFilename = function(request, parent, ...args) {
-      if (request === "onnxruntime-node" || request === "onnxruntime-common" || request.startsWith("onnxruntime-")) {
+      if (request === "onnxruntime-common" || request.startsWith("onnxruntime-")) {
         const customPath = pathMod.join(pluginNodeModules, request);
         if (fs.existsSync(customPath)) {
           const pkg = JSON.parse(fs.readFileSync(pathMod.join(customPath, "package.json"), "utf8"));
@@ -76551,20 +76546,19 @@ function getOrt(pluginDir) {
       console.log("[Blanq] ONNX Runtime Node loaded OK");
     } catch (e) {
       console.warn(`[Blanq] onnxruntime-node failed: ${e.message}`);
-      ortLib = null;
-    } finally {
       Module._resolveFilename = origResolve;
+      ortLib = null;
     }
     if (ortLib) return ortLib;
   }
   const ortPath = pathMod.join(pluginDir, "ort.all.min.js");
   if (fs.existsSync(ortPath)) {
     console.log(`[Blanq] Loading ONNX Runtime WASM from: ${ortPath}`);
+    console.warn("[Blanq] WASM fallback is slower than native. Consider reinstalling the plugin.");
     ortLib = require(ortPath);
     console.log("[Blanq] ONNX Runtime WASM loaded OK");
     const { pathToFileURL } = require("url");
     const wasmPrefix = pathToFileURL(pluginDir).href + "/";
-    console.log(`[Blanq] Setting wasmPaths prefix: ${wasmPrefix}`);
     ortLib.env.wasm.numThreads = 1;
     ortLib.env.wasm.proxy = false;
     ortLib.env.wasm.wasmPaths = wasmPrefix;
@@ -76576,8 +76570,6 @@ function getOrt(pluginDir) {
         wasmBuf.byteOffset + wasmBuf.byteLength
       );
       console.log(`[Blanq] Pre-loaded WASM binary: ${(wasmBuf.length / 1e6).toFixed(1)} MB`);
-    } else {
-      console.warn(`[Blanq] WASM binary not found at: ${wasmFile}`);
     }
     return ortLib;
   }
@@ -76600,23 +76592,22 @@ async function loadModel(modelPath, pluginDir) {
   console.log(`[Blanq] Model size: ${(modelBuffer.length / 1e6).toFixed(1)} MB`);
   console.log(`[Blanq] ArrayBuffer byteLength: ${arrayBuffer.byteLength}`);
   console.log("[Blanq] Creating inference session...");
-  const timer = setInterval(() => {
-    console.log("[Blanq] ...still waiting for InferenceSession.create...");
-  }, 3e3);
+  const TIMEOUT_MS = 6e4;
+  const sessionPromise = ort.InferenceSession.create(
+    new Uint8Array(arrayBuffer),
+    { executionProviders: ["cpu"] }
+  );
+  const timeoutPromise = new Promise((_resolve, reject) => {
+    setTimeout(() => reject(new Error(
+      "Model loading timed out after 60s. This usually means the WASM runtime cannot handle this model. Try reinstalling the plugin to get native onnxruntime-node support."
+    )), TIMEOUT_MS);
+  });
   try {
-    modelSession = await ort.InferenceSession.create(
-      new Uint8Array(arrayBuffer),
-      { executionProviders: ["cpu"] }
-    );
+    modelSession = await Promise.race([sessionPromise, timeoutPromise]);
   } catch (e) {
-    clearInterval(timer);
-    console.error("[Blanq] InferenceSession.create FAILED:", e);
-    console.error("[Blanq] Error name:", e.name);
-    console.error("[Blanq] Error message:", e.message);
-    console.error("[Blanq] Error stack:", e.stack);
+    console.error("[Blanq] InferenceSession.create FAILED:", e.message);
     throw e;
   }
-  clearInterval(timer);
   console.log("[Blanq] Model loaded successfully");
   return modelSession;
 }
@@ -76960,10 +76951,10 @@ var BlanqView = class extends import_obsidian.ItemView {
     this.blanks = [];
     this.pageTexts = {};
     exportBtn.style.display = "none";
+    const pages = [];
     try {
       this.log("Loading PDF...");
       console.log("[Blanq] Starting PDF analysis...");
-      console.log("[Blanq] Importing pdfjs-dist...");
       const pdfjsLib = await Promise.resolve().then(() => __toESM(require_pdf()));
       const fs = require("fs");
       const workerPath = require("path").join(
@@ -76974,25 +76965,14 @@ var BlanqView = class extends import_obsidian.ItemView {
       const workerCode = fs.readFileSync(workerPath, "utf8");
       const blob = new Blob([workerCode], { type: "application/javascript" });
       pdfjsLib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(blob);
-      console.log("[Blanq] pdfjs loaded, worker blob created");
       this.log("Parsing PDF...");
-      console.log("[Blanq] Calling getDocument...");
       const pdf = await pdfjsLib.getDocument({ data: this.pdfBytes.slice() }).promise;
       const numPages = pdf.numPages;
-      console.log(`[Blanq] PDF loaded: ${numPages} pages`);
       this.log(`${numPages} page(s) loaded`, "ok");
       const containerW = viewer.clientWidth || 800;
-      const fontFamily = this._refs.fontSel.value === "jetbrains" ? "JetBrains Mono" : "Kalam";
-      let allBlanks = [];
-      const modelPath = this.plugin.getModelPath();
-      const pluginDir = this.plugin.getPluginDir();
-      console.log(`[Blanq] Model path: ${modelPath}`);
-      console.log(`[Blanq] Plugin dir: ${pluginDir}`);
       for (let p = 1; p <= numPages; p++) {
-        console.log(`[Blanq] Processing page ${p}/${numPages}...`);
         const page = await pdf.getPage(p);
         const vp1 = page.getViewport({ scale: 1 });
-        console.log(`[Blanq] Page ${p}: extracting text...`);
         const tc = await page.getTextContent();
         const items = tc.items.filter((it) => it.str != null).map((it) => {
           const tx = it.transform;
@@ -77002,7 +76982,6 @@ var BlanqView = class extends import_obsidian.ItemView {
           (a, b) => b.y - a.y || a.x - b.x
         );
         this.pageTexts[p] = sorted.map((it) => it.str).join(" ").replace(/\s+/g, " ").trim();
-        console.log(`[Blanq] Page ${p}: rendering canvas...`);
         const displayScale = containerW / vp1.width;
         const vp = page.getViewport({ scale: displayScale });
         const dpr = window.devicePixelRatio || 1;
@@ -77017,55 +76996,66 @@ var BlanqView = class extends import_obsidian.ItemView {
         const ctx = canvas.getContext("2d");
         ctx.scale(dpr, dpr);
         await page.render({ canvasContext: ctx, viewport: vp }).promise;
-        console.log(`[Blanq] Page ${p}: rendered (${canvas.width}x${canvas.height})`);
         const pg = p;
         wrap.addEventListener(
           "click",
           (e) => this.handleAddBlankClick(e, wrap, canvas, pg)
         );
-        this.log(`Detecting blanks on page ${p}...`);
-        console.log(`[Blanq] Page ${p}: running detection model...`);
-        let pageBlanks;
-        try {
-          pageBlanks = await detectBlanks(canvas, p, modelPath, pluginDir);
-          console.log(`[Blanq] Page ${p}: detected ${pageBlanks.length} blanks`);
-        } catch (err) {
-          console.error(`[Blanq] Page ${p}: detection failed:`, err);
-          this.log(`Detection error: ${err.message}`, "err");
-          pageBlanks = [];
-        }
-        this.log(`${pageBlanks.length} blank(s) found on page ${p}`, "ok");
+        pages.push({
+          wrap,
+          canvas,
+          vp1Width: vp1.width,
+          vp1Height: vp1.height,
+          displayScale,
+          dpr,
+          pageNum: p
+        });
+      }
+    } catch (err) {
+      console.error("[Blanq] PDF rendering failed:", err);
+      this.log(`Error loading PDF: ${err.message}`, "err");
+      return;
+    }
+    const modelPath = this.plugin.getModelPath();
+    const pluginDir = this.plugin.getPluginDir();
+    const fontFamily = this._refs.fontSel.value === "jetbrains" ? "JetBrains Mono" : "Kalam";
+    let allBlanks = [];
+    this.log("Detecting blanks...");
+    for (const pg of pages) {
+      try {
+        const pageBlanks = await detectBlanks(pg.canvas, pg.pageNum, modelPath, pluginDir);
+        console.log(`[Blanq] Page ${pg.pageNum}: detected ${pageBlanks.length} blanks`);
+        this.log(`${pageBlanks.length} blank(s) on page ${pg.pageNum}`, "ok");
         pageBlanks.sort((a, b) => a.y - b.y || a.x - b.x);
         for (const b of pageBlanks) {
-          const ox = b.x / dpr, oy = b.y / dpr, ow = b.width / dpr, oh = b.height / dpr;
-          const ta = this.createOverlayInput(wrap, b, ox, oy, ow, oh, fontFamily, dpr);
+          const ox = b.x / pg.dpr, oy = b.y / pg.dpr, ow = b.width / pg.dpr, oh = b.height / pg.dpr;
+          const ta = this.createOverlayInput(pg.wrap, b, ox, oy, ow, oh, fontFamily, pg.dpr);
           ta.placeholder = "#" + (allBlanks.length + pageBlanks.indexOf(b) + 1);
-          b.vw = vp1.width;
-          b.vh = vp1.height;
-          b.displayScale = displayScale;
-          b.dpr = dpr;
+          b.vw = pg.vp1Width;
+          b.vh = pg.vp1Height;
+          b.displayScale = pg.displayScale;
+          b.dpr = pg.dpr;
         }
         allBlanks.push(...pageBlanks);
+      } catch (err) {
+        console.error(`[Blanq] Page ${pg.pageNum}: detection failed:`, err);
+        this.log(`Detection failed on page ${pg.pageNum}: ${err.message}`, "err");
       }
-      allBlanks.forEach((b, i) => b.id = i + 1);
-      this.blanks = allBlanks;
-      viewer.querySelectorAll(".blanq-overlay-input").forEach((ta, i) => {
-        ta.placeholder = "#" + (i + 1);
-        ta.id = "blanq-ans-" + (i + 1);
-      });
-      if (!allBlanks.length) {
-        this.log("No blanks found.", "err");
-        return;
-      }
-      this.log(`${allBlanks.length} answer region(s) found`, "ok");
-      exportBtn.style.display = "";
-      aiBtn.disabled = !this.plugin.settings.apiKey;
-      this.log("Ready \u2014 click blanks to type, or use AI Fill.", "ok");
-      console.log(`[Blanq] Done! ${allBlanks.length} blanks total`);
-    } catch (err) {
-      console.error("[Blanq] analyze() failed:", err);
-      this.log(`Error: ${err.message}`, "err");
     }
+    allBlanks.forEach((b, i) => b.id = i + 1);
+    this.blanks = allBlanks;
+    viewer.querySelectorAll(".blanq-overlay-input").forEach((ta, i) => {
+      ta.placeholder = "#" + (i + 1);
+      ta.id = "blanq-ans-" + (i + 1);
+    });
+    if (!allBlanks.length) {
+      this.log("No blanks detected. Use '+ Add Blank' to mark fields manually.", "warn");
+      return;
+    }
+    this.log(`${allBlanks.length} answer region(s) found`, "ok");
+    exportBtn.style.display = "";
+    aiBtn.disabled = !this.plugin.settings.apiKey;
+    this.log("Ready \u2014 click blanks to type, or use AI Fill.", "ok");
   }
   createOverlayInput(wrap, b, ox, oy, ow, oh, fontFamily, dpr) {
     const ta = wrap.createEl("textarea", { cls: "blanq-overlay-input" });

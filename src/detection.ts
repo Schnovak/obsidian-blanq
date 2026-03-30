@@ -47,19 +47,15 @@ function getOrt(pluginDir: string): any {
   const ortNodePkg = pathMod.join(pluginNodeModules, "onnxruntime-node");
 
   console.log(`[Blanq] Checking for native ort at: ${ortNodePkg}`);
-  console.log(`[Blanq] node_modules exists: ${fs.existsSync(pluginNodeModules)}`);
   console.log(`[Blanq] onnxruntime-node exists: ${fs.existsSync(ortNodePkg)}`);
-  if (fs.existsSync(pluginNodeModules)) {
-    console.log(`[Blanq] node_modules contents: ${fs.readdirSync(pluginNodeModules).join(", ")}`);
-  }
 
   if (fs.existsSync(ortNodePkg)) {
     console.log(`[Blanq] Found onnxruntime-node at: ${ortNodePkg}`);
-    // Temporarily add our node_modules to the resolver so require() finds it
-    const origResolvePaths = Module._resolveLookupPaths;
+    // Patch module resolver so onnxruntime-node can find onnxruntime-common
+    // Keep the patch active — onnxruntime-common is required lazily during inference too
     const origResolve = Module._resolveFilename;
     Module._resolveFilename = function (request: string, parent: any, ...args: any[]) {
-      if (request === "onnxruntime-node" || request === "onnxruntime-common" || request.startsWith("onnxruntime-")) {
+      if (request === "onnxruntime-common" || request.startsWith("onnxruntime-")) {
         const customPath = pathMod.join(pluginNodeModules, request);
         if (fs.existsSync(customPath)) {
           const pkg = JSON.parse(fs.readFileSync(pathMod.join(customPath, "package.json"), "utf8"));
@@ -74,26 +70,24 @@ function getOrt(pluginDir: string): any {
       console.log("[Blanq] ONNX Runtime Node loaded OK");
     } catch (e: any) {
       console.warn(`[Blanq] onnxruntime-node failed: ${e.message}`);
-      ortLib = null;
-    } finally {
+      // Restore resolver if native loading failed
       Module._resolveFilename = origResolve;
+      ortLib = null;
     }
 
     if (ortLib) return ortLib;
   }
 
-  // Fallback: WASM runtime
+  // Fallback: WASM runtime (slower, may struggle with large models)
   const ortPath = pathMod.join(pluginDir, "ort.all.min.js");
   if (fs.existsSync(ortPath)) {
     console.log(`[Blanq] Loading ONNX Runtime WASM from: ${ortPath}`);
+    console.warn("[Blanq] WASM fallback is slower than native. Consider reinstalling the plugin.");
     ortLib = require(ortPath);
     console.log("[Blanq] ONNX Runtime WASM loaded OK");
 
-    // Configure WASM paths so ort can find .mjs glue and .wasm binary
-    // Obsidian blocks file:// script loads, but import() works with file:// URLs in Electron
     const { pathToFileURL } = require("url");
     const wasmPrefix = pathToFileURL(pluginDir).href + "/";
-    console.log(`[Blanq] Setting wasmPaths prefix: ${wasmPrefix}`);
 
     ortLib.env.wasm.numThreads = 1;
     ortLib.env.wasm.proxy = false;
@@ -108,8 +102,6 @@ function getOrt(pluginDir: string): any {
         wasmBuf.byteOffset + wasmBuf.byteLength
       );
       console.log(`[Blanq] Pre-loaded WASM binary: ${(wasmBuf.length / 1e6).toFixed(1)} MB`);
-    } else {
-      console.warn(`[Blanq] WASM binary not found at: ${wasmFile}`);
     }
 
     return ortLib;
@@ -139,26 +131,28 @@ export async function loadModel(modelPath: string, pluginDir: string): Promise<a
   console.log(`[Blanq] Model size: ${(modelBuffer.length / 1e6).toFixed(1)} MB`);
   console.log(`[Blanq] ArrayBuffer byteLength: ${arrayBuffer.byteLength}`);
 
-  // Try with a timeout to detect hangs
+  // Create session with a timeout to prevent hanging the renderer
   console.log("[Blanq] Creating inference session...");
-  const timer = setInterval(() => {
-    console.log("[Blanq] ...still waiting for InferenceSession.create...");
-  }, 3000);
+  const TIMEOUT_MS = 60000; // 60 seconds max
+
+  const sessionPromise = ort.InferenceSession.create(
+    new Uint8Array(arrayBuffer),
+    { executionProviders: ["cpu"] }
+  );
+
+  const timeoutPromise = new Promise((_resolve, reject) => {
+    setTimeout(() => reject(new Error(
+      "Model loading timed out after 60s. This usually means the WASM runtime cannot handle this model. " +
+      "Try reinstalling the plugin to get native onnxruntime-node support."
+    )), TIMEOUT_MS);
+  });
 
   try {
-    modelSession = await ort.InferenceSession.create(
-      new Uint8Array(arrayBuffer),
-      { executionProviders: ["cpu"] }
-    );
+    modelSession = await Promise.race([sessionPromise, timeoutPromise]);
   } catch (e: any) {
-    clearInterval(timer);
-    console.error("[Blanq] InferenceSession.create FAILED:", e);
-    console.error("[Blanq] Error name:", e.name);
-    console.error("[Blanq] Error message:", e.message);
-    console.error("[Blanq] Error stack:", e.stack);
+    console.error("[Blanq] InferenceSession.create FAILED:", e.message);
     throw e;
   }
-  clearInterval(timer);
   console.log("[Blanq] Model loaded successfully");
   return modelSession;
 }

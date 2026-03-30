@@ -407,18 +407,51 @@ function installToVaults(vaults, modelPath) {
     // Copy model
     fs.copyFileSync(modelPath, path.join(dest, "FFDNet-S.onnx"));
 
-    // Copy node_modules (onnxruntime-node + onnxruntime-common)
+    // Copy node_modules (onnxruntime-node + onnxruntime-common for native inference)
+    // Only copy the native binary for the target platform to avoid copying 500+ MB
     const nmSrc = path.join(SCRIPT_DIR, "node_modules");
     const nmDest = path.join(dest, "node_modules");
-    for (const pkg of ["onnxruntime-node", "onnxruntime-common"]) {
-      const pkgSrc = path.join(nmSrc, pkg);
-      if (fs.existsSync(pkgSrc)) {
-        info(`Copying ${pkg}...`);
-        copyDirRecursive(pkgSrc, path.join(nmDest, pkg));
-        ok(`Copied ${pkg}`);
-      } else {
-        warn(`${pkg} not found at ${pkgSrc}`);
+    const targetPlatform = vault.startsWith("/mnt/") ? "win32" : os.platform();
+    const targetArch = os.arch() === "x64" ? "x64" : os.arch();
+
+    // Copy onnxruntime-common (small, needed by onnxruntime-node)
+    const commonSrc = path.join(nmSrc, "onnxruntime-common");
+    if (fs.existsSync(commonSrc)) {
+      info("Copying onnxruntime-common...");
+      copyDirRecursive(commonSrc, path.join(nmDest, "onnxruntime-common"));
+      ok("Copied onnxruntime-common");
+    }
+
+    // Copy onnxruntime-node but only the target platform's binary
+    const ortNodeSrc = path.join(nmSrc, "onnxruntime-node");
+    if (fs.existsSync(ortNodeSrc)) {
+      info(`Copying onnxruntime-node (${targetPlatform}/${targetArch} only)...`);
+      const ortNodeDest = path.join(nmDest, "onnxruntime-node");
+
+      // Copy dist/, lib/, package.json, etc. (small files)
+      for (const entry of fs.readdirSync(ortNodeSrc, { withFileTypes: true })) {
+        const srcP = path.join(ortNodeSrc, entry.name);
+        const destP = path.join(ortNodeDest, entry.name);
+        if (entry.name === "bin") continue; // Handle separately
+        if (entry.isDirectory()) {
+          copyDirRecursive(srcP, destP);
+        } else {
+          fs.mkdirSync(path.dirname(destP), { recursive: true });
+          fs.copyFileSync(srcP, destP);
+        }
       }
+
+      // Copy only the target platform binary from bin/
+      const binSrc = path.join(ortNodeSrc, "bin", "napi-v6", targetPlatform, targetArch);
+      const binDest = path.join(ortNodeDest, "bin", "napi-v6", targetPlatform, targetArch);
+      if (fs.existsSync(binSrc)) {
+        copyDirRecursive(binSrc, binDest);
+        ok(`Native ONNX binary installed for ${targetPlatform}/${targetArch}`);
+      } else {
+        warn(`Native binary not available for ${targetPlatform}/${targetArch} — will use WASM fallback`);
+      }
+    } else {
+      warn("onnxruntime-node not found — blank detection will use slower WASM fallback");
     }
 
     ok(`Installed to ${vname} (${dirSize(dest)})`);

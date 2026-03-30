@@ -47,7 +47,10 @@ The installer will:
    - `main.js`
    - `manifest.json`
    - `FFDNet-S.onnx` (detection model, ~37 MB)
-   - All `*.wasm` and `*.mjs` files (ONNX Runtime)
+   - All `*.wasm` and `*.mjs` files (ONNX Runtime WASM fallback)
+   - `ort.all.min.js`
+   - `pdf.worker.min.js`
+   - `node_modules/` directory (contains `onnxruntime-node` and `onnxruntime-common` for fast native inference)
 
 4. In Obsidian: **Settings → Community Plugins → Turn off Restricted Mode → Enable Blanq Worksheet**
 
@@ -76,6 +79,6 @@ npm run build  # Production build
 
 ## How it works
 
-The plugin uses a fine-tuned YOLO11s model (`FFDNet-S.onnx`) to detect text input fields, choice buttons, and other blank regions in worksheet PDFs. The model runs entirely in the browser via ONNX Runtime Web (WebAssembly) — no server or GPU required.
+The plugin uses a fine-tuned YOLO11s model (`FFDNet-S.onnx`) to detect text input fields, choice buttons, and other blank regions in worksheet PDFs. The model runs locally using ONNX Runtime Node (native, fast) with a WebAssembly fallback — no server or GPU required.
 
 Detected regions are overlaid with editable text areas. When saving, answers are embedded into the PDF using pdf-lib.

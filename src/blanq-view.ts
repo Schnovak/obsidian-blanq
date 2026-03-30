@@ -215,126 +215,133 @@ export class BlanqView extends ItemView {
     this.pageTexts = {};
     exportBtn.style.display = "none";
 
+    // Phase 1: Render all PDF pages first so the document is always visible
+    interface PageInfo {
+      wrap: HTMLElement;
+      canvas: HTMLCanvasElement;
+      vp1Width: number;
+      vp1Height: number;
+      displayScale: number;
+      dpr: number;
+      pageNum: number;
+    }
+    const pages: PageInfo[] = [];
+
     try {
+      this.log("Loading PDF...");
+      console.log("[Blanq] Starting PDF analysis...");
 
-    this.log("Loading PDF...");
-    console.log("[Blanq] Starting PDF analysis...");
+      const pdfjsLib = await import("pdfjs-dist");
+      const fs = require("fs");
+      const workerPath = require("path").join(
+        this.plugin.getPluginDir(), "pdf.worker.min.js"
+      );
+      console.log(`[Blanq] Reading worker from: ${workerPath}`);
+      const workerCode = fs.readFileSync(workerPath, "utf8");
+      const blob = new Blob([workerCode], { type: "application/javascript" });
+      pdfjsLib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(blob);
 
-    // Dynamic import of pdfjs
-    console.log("[Blanq] Importing pdfjs-dist...");
-    const pdfjsLib = await import("pdfjs-dist");
-    // Load worker source as a blob URL (file:// is blocked in Obsidian)
-    const fs = require("fs");
-    const workerPath = require("path").join(
-      this.plugin.getPluginDir(), "pdf.worker.min.js"
-    );
-    console.log(`[Blanq] Reading worker from: ${workerPath}`);
-    const workerCode = fs.readFileSync(workerPath, "utf8");
-    const blob = new Blob([workerCode], { type: "application/javascript" });
-    pdfjsLib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(blob);
-    console.log("[Blanq] pdfjs loaded, worker blob created");
+      this.log("Parsing PDF...");
+      const pdf = await pdfjsLib.getDocument({ data: this.pdfBytes.slice() }).promise;
+      const numPages = pdf.numPages;
+      this.log(`${numPages} page(s) loaded`, "ok");
 
-    this.log("Parsing PDF...");
-    console.log("[Blanq] Calling getDocument...");
-    const pdf = await pdfjsLib.getDocument({ data: this.pdfBytes.slice() }).promise;
-    const numPages = pdf.numPages;
-    console.log(`[Blanq] PDF loaded: ${numPages} pages`);
-    this.log(`${numPages} page(s) loaded`, "ok");
+      const containerW = viewer.clientWidth || 800;
 
-    const containerW = viewer.clientWidth || 800;
-    const fontFamily =
-      this._refs.fontSel.value === "jetbrains" ? "JetBrains Mono" : "Kalam";
+      for (let p = 1; p <= numPages; p++) {
+        const page = await pdf.getPage(p);
+        const vp1 = page.getViewport({ scale: 1 });
 
-    let allBlanks: BlankBox[] = [];
+        // Extract text
+        const tc = await page.getTextContent();
+        const items = tc.items
+          .filter((it: any) => it.str != null)
+          .map((it: any) => {
+            const tx = it.transform;
+            return { str: it.str, x: tx[4], y: tx[5] };
+          });
+        const sorted = [...items].sort(
+          (a: any, b: any) => b.y - a.y || a.x - b.x
+        );
+        this.pageTexts[p] = sorted
+          .map((it: any) => it.str)
+          .join(" ")
+          .replace(/\s+/g, " ")
+          .trim();
 
+        // Render page
+        const displayScale = containerW / vp1.width;
+        const vp = page.getViewport({ scale: displayScale });
+        const dpr = window.devicePixelRatio || 1;
+
+        const wrap = viewer.createDiv({ cls: "blanq-pdf-page" });
+        wrap.style.width = vp.width + "px";
+        wrap.style.height = vp.height + "px";
+
+        const canvas = wrap.createEl("canvas");
+        canvas.width = Math.round(vp.width * dpr);
+        canvas.height = Math.round(vp.height * dpr);
+        canvas.style.width = vp.width + "px";
+        canvas.style.height = vp.height + "px";
+
+        const ctx = canvas.getContext("2d")!;
+        ctx.scale(dpr, dpr);
+        await page.render({ canvasContext: ctx, viewport: vp }).promise;
+
+        // Click to add blank
+        const pg = p;
+        wrap.addEventListener("click", (e) =>
+          this.handleAddBlankClick(e, wrap, canvas, pg)
+        );
+
+        pages.push({
+          wrap, canvas, vp1Width: vp1.width, vp1Height: vp1.height,
+          displayScale, dpr, pageNum: p,
+        });
+      }
+    } catch (err: any) {
+      console.error("[Blanq] PDF rendering failed:", err);
+      this.log(`Error loading PDF: ${err.message}`, "err");
+      return;
+    }
+
+    // Phase 2: Run blank detection (non-fatal — PDF is already visible)
     const modelPath = this.plugin.getModelPath();
     const pluginDir = this.plugin.getPluginDir();
-    console.log(`[Blanq] Model path: ${modelPath}`);
-    console.log(`[Blanq] Plugin dir: ${pluginDir}`);
+    const fontFamily =
+      this._refs.fontSel.value === "jetbrains" ? "JetBrains Mono" : "Kalam";
+    let allBlanks: BlankBox[] = [];
 
-    for (let p = 1; p <= numPages; p++) {
-      console.log(`[Blanq] Processing page ${p}/${numPages}...`);
-      const page = await pdf.getPage(p);
-      const vp1 = page.getViewport({ scale: 1 });
+    this.log("Detecting blanks...");
 
-      // Extract text
-      console.log(`[Blanq] Page ${p}: extracting text...`);
-      const tc = await page.getTextContent();
-      const items = tc.items
-        .filter((it: any) => it.str != null)
-        .map((it: any) => {
-          const tx = it.transform;
-          return { str: it.str, x: tx[4], y: tx[5] };
-        });
-      const sorted = [...items].sort(
-        (a: any, b: any) => b.y - a.y || a.x - b.x
-      );
-      this.pageTexts[p] = sorted
-        .map((it: any) => it.str)
-        .join(" ")
-        .replace(/\s+/g, " ")
-        .trim();
-
-      // Render page
-      console.log(`[Blanq] Page ${p}: rendering canvas...`);
-      const displayScale = containerW / vp1.width;
-      const vp = page.getViewport({ scale: displayScale });
-      const dpr = window.devicePixelRatio || 1;
-
-      const wrap = viewer.createDiv({ cls: "blanq-pdf-page" });
-      wrap.style.width = vp.width + "px";
-      wrap.style.height = vp.height + "px";
-
-      const canvas = wrap.createEl("canvas");
-      canvas.width = Math.round(vp.width * dpr);
-      canvas.height = Math.round(vp.height * dpr);
-      canvas.style.width = vp.width + "px";
-      canvas.style.height = vp.height + "px";
-
-      const ctx = canvas.getContext("2d")!;
-      ctx.scale(dpr, dpr);
-      await page.render({ canvasContext: ctx, viewport: vp }).promise;
-      console.log(`[Blanq] Page ${p}: rendered (${canvas.width}x${canvas.height})`);
-
-      // Click to add blank
-      const pg = p;
-      wrap.addEventListener("click", (e) =>
-        this.handleAddBlankClick(e, wrap, canvas, pg)
-      );
-
-      // Detect blanks
-      this.log(`Detecting blanks on page ${p}...`);
-      console.log(`[Blanq] Page ${p}: running detection model...`);
-      let pageBlanks: BlankBox[];
+    for (const pg of pages) {
       try {
-        pageBlanks = await detectBlanks(canvas, p, modelPath, pluginDir);
-        console.log(`[Blanq] Page ${p}: detected ${pageBlanks.length} blanks`);
+        const pageBlanks = await detectBlanks(pg.canvas, pg.pageNum, modelPath, pluginDir);
+        console.log(`[Blanq] Page ${pg.pageNum}: detected ${pageBlanks.length} blanks`);
+        this.log(`${pageBlanks.length} blank(s) on page ${pg.pageNum}`, "ok");
+
+        pageBlanks.sort((a, b) => a.y - b.y || a.x - b.x);
+
+        for (const b of pageBlanks) {
+          const ox = b.x / pg.dpr,
+            oy = b.y / pg.dpr,
+            ow = b.width / pg.dpr,
+            oh = b.height / pg.dpr;
+          const ta = this.createOverlayInput(pg.wrap, b, ox, oy, ow, oh, fontFamily, pg.dpr);
+          ta.placeholder = "#" + (allBlanks.length + pageBlanks.indexOf(b) + 1);
+
+          b.vw = pg.vp1Width;
+          b.vh = pg.vp1Height;
+          b.displayScale = pg.displayScale;
+          b.dpr = pg.dpr;
+        }
+
+        allBlanks.push(...pageBlanks);
       } catch (err: any) {
-        console.error(`[Blanq] Page ${p}: detection failed:`, err);
-        this.log(`Detection error: ${err.message}`, "err");
-        pageBlanks = [];
+        console.error(`[Blanq] Page ${pg.pageNum}: detection failed:`, err);
+        this.log(`Detection failed on page ${pg.pageNum}: ${err.message}`, "err");
+        // Continue with remaining pages — don't abort everything
       }
-      this.log(`${pageBlanks.length} blank(s) found on page ${p}`, "ok");
-
-      pageBlanks.sort((a, b) => a.y - b.y || a.x - b.x);
-
-      // Create overlays
-      for (const b of pageBlanks) {
-        const ox = b.x / dpr,
-          oy = b.y / dpr,
-          ow = b.width / dpr,
-          oh = b.height / dpr;
-        const ta = this.createOverlayInput(wrap, b, ox, oy, ow, oh, fontFamily, dpr);
-        ta.placeholder = "#" + (allBlanks.length + pageBlanks.indexOf(b) + 1);
-
-        // Store display info for export
-        b.vw = vp1.width;
-        b.vh = vp1.height;
-        b.displayScale = displayScale;
-        b.dpr = dpr;
-      }
-
-      allBlanks.push(...pageBlanks);
     }
 
     allBlanks.forEach((b, i) => (b.id = i + 1));
@@ -349,7 +356,7 @@ export class BlanqView extends ItemView {
       });
 
     if (!allBlanks.length) {
-      this.log("No blanks found.", "err");
+      this.log("No blanks detected. Use '+ Add Blank' to mark fields manually.", "warn");
       return;
     }
 
@@ -357,12 +364,6 @@ export class BlanqView extends ItemView {
     exportBtn.style.display = "";
     aiBtn.disabled = !this.plugin.settings.apiKey;
     this.log("Ready — click blanks to type, or use AI Fill.", "ok");
-    console.log(`[Blanq] Done! ${allBlanks.length} blanks total`);
-
-    } catch (err: any) {
-      console.error("[Blanq] analyze() failed:", err);
-      this.log(`Error: ${err.message}`, "err");
-    }
   }
 
   private createOverlayInput(

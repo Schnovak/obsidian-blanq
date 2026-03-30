@@ -39,12 +39,34 @@ function copyAssets() {
   }
 
   // Copy onnxruntime-node + onnxruntime-common for native inference
+  // Only copy the current platform's binary to avoid 500+ MB of cross-platform binaries
   const pluginNM = join(outDir, "node_modules");
   mkdirSync(pluginNM, { recursive: true });
-  for (const pkg of ["onnxruntime-node", "onnxruntime-common"]) {
-    const src = join(__dirname, "node_modules", pkg);
-    if (existsSync(src)) {
-      copyDirSync(src, join(pluginNM, pkg));
+
+  const commonSrc = join(__dirname, "node_modules", "onnxruntime-common");
+  if (existsSync(commonSrc)) {
+    copyDirSync(commonSrc, join(pluginNM, "onnxruntime-common"));
+  }
+
+  const ortNodeSrc = join(__dirname, "node_modules", "onnxruntime-node");
+  if (existsSync(ortNodeSrc)) {
+    const ortNodeDest = join(pluginNM, "onnxruntime-node");
+    // Copy everything except bin/
+    for (const entry of readdirSync(ortNodeSrc, { withFileTypes: true })) {
+      if (entry.name === "bin") continue;
+      const s = join(ortNodeSrc, entry.name);
+      const d = join(ortNodeDest, entry.name);
+      if (entry.isDirectory()) {
+        copyDirSync(s, d);
+      } else {
+        mkdirSync(ortNodeDest, { recursive: true });
+        copyFileSync(s, d);
+      }
+    }
+    // Copy all platform binaries during build (installer will prune for target)
+    const binSrc = join(ortNodeSrc, "bin");
+    if (existsSync(binSrc)) {
+      copyDirSync(binSrc, join(ortNodeDest, "bin"));
     }
   }
 
