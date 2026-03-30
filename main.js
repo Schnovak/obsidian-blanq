@@ -76944,6 +76944,9 @@ var BlanqView = class extends import_obsidian.FileView {
     });
     aiBtn.disabled = true;
     aiBtn.addEventListener("click", () => this.aiFill(aiBtn));
+    if (this.plugin.settings.hideAi) {
+      aiBtn.style.display = "none";
+    }
     const exportBtn = toolbar.createEl("button", {
       text: "Save",
       cls: "blanq-btn blanq-btn-dl"
@@ -77770,7 +77773,8 @@ var BLANQ_CSS = `
 var import_path = __toESM(require("path"));
 var DEFAULT_SETTINGS = {
   apiKey: "",
-  apiProvider: "anthropic"
+  apiProvider: "anthropic",
+  hideAi: false
 };
 var BlanqPlugin = class extends import_obsidian2.Plugin {
   constructor() {
@@ -77901,22 +77905,30 @@ var BlanqSettingTab = class extends import_obsidian2.PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
     containerEl.createEl("h2", { text: "Blanq Worksheet Settings" });
-    containerEl.createEl("p", {
-      text: "The blank detection works fully offline. AI Fill is optional and requires an API key.",
-      cls: "setting-item-description"
-    });
-    new import_obsidian2.Setting(containerEl).setName("AI Provider").setDesc("Choose which AI provider to use for AI Fill (optional)").addDropdown(
-      (drop) => drop.addOption("anthropic", "Anthropic (Claude)").addOption("openai", "OpenAI (GPT-4o)").setValue(this.plugin.settings.apiProvider).onChange(async (value) => {
-        this.plugin.settings.apiProvider = value;
+    new import_obsidian2.Setting(containerEl).setName("Hide AI features").setDesc("Remove the AI Fill button and all AI-related UI from the toolbar.").addToggle(
+      (toggle) => toggle.setValue(this.plugin.settings.hideAi).onChange(async (value) => {
+        this.plugin.settings.hideAi = value;
         await this.plugin.saveSettings();
       })
     );
-    new import_obsidian2.Setting(containerEl).setName("API Key").setDesc("API key for AI Fill. Leave empty for offline-only mode.").addText(
-      (text) => text.setPlaceholder("sk-...").setValue(this.plugin.settings.apiKey).onChange(async (value) => {
-        this.plugin.settings.apiKey = value.trim();
-        await this.plugin.saveSettings();
-      })
-    );
+    if (!this.plugin.settings.hideAi) {
+      containerEl.createEl("p", {
+        text: "The blank detection works fully offline. AI Fill is optional and requires an API key.",
+        cls: "setting-item-description"
+      });
+      new import_obsidian2.Setting(containerEl).setName("AI Provider").setDesc("Choose which AI provider to use for AI Fill (optional)").addDropdown(
+        (drop) => drop.addOption("anthropic", "Anthropic (Claude)").addOption("openai", "OpenAI (GPT-4o)").setValue(this.plugin.settings.apiProvider).onChange(async (value) => {
+          this.plugin.settings.apiProvider = value;
+          await this.plugin.saveSettings();
+        })
+      );
+      new import_obsidian2.Setting(containerEl).setName("API Key").setDesc("API key for AI Fill. Leave empty for offline-only mode.").addText(
+        (text) => text.setPlaceholder("sk-...").setValue(this.plugin.settings.apiKey).onChange(async (value) => {
+          this.plugin.settings.apiKey = value.trim();
+          await this.plugin.saveSettings();
+        })
+      );
+    }
   }
 };
 /*! Bundled license information:

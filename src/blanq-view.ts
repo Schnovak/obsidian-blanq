@@ -177,6 +177,9 @@ export class BlanqView extends FileView {
     });
     aiBtn.disabled = true;
     aiBtn.addEventListener("click", () => this.aiFill(aiBtn));
+    if (this.plugin.settings.hideAi) {
+      aiBtn.style.display = "none";
+    }
 
     const exportBtn = toolbar.createEl("button", {
       text: "Save",

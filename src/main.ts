@@ -5,11 +5,13 @@ import path from "path";
 interface BlanqSettings {
   apiKey: string;
   apiProvider: "anthropic" | "openai";
+  hideAi: boolean;
 }
 
 const DEFAULT_SETTINGS: BlanqSettings = {
   apiKey: "",
   apiProvider: "anthropic",
+  hideAi: false,
 };
 
 export default class BlanqPlugin extends Plugin {
@@ -179,36 +181,50 @@ class BlanqSettingTab extends PluginSettingTab {
 
     containerEl.createEl("h2", { text: "Blanq Worksheet Settings" });
 
-    containerEl.createEl("p", {
-      text: "The blank detection works fully offline. AI Fill is optional and requires an API key.",
-      cls: "setting-item-description",
-    });
-
     new Setting(containerEl)
-      .setName("AI Provider")
-      .setDesc("Choose which AI provider to use for AI Fill (optional)")
-      .addDropdown((drop) =>
-        drop
-          .addOption("anthropic", "Anthropic (Claude)")
-          .addOption("openai", "OpenAI (GPT-4o)")
-          .setValue(this.plugin.settings.apiProvider)
+      .setName("Hide AI features")
+      .setDesc("Remove the AI Fill button and all AI-related UI from the toolbar.")
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.hideAi)
           .onChange(async (value) => {
-            this.plugin.settings.apiProvider = value as "anthropic" | "openai";
+            this.plugin.settings.hideAi = value;
             await this.plugin.saveSettings();
           })
       );
 
-    new Setting(containerEl)
-      .setName("API Key")
-      .setDesc("API key for AI Fill. Leave empty for offline-only mode.")
-      .addText((text) =>
-        text
-          .setPlaceholder("sk-...")
-          .setValue(this.plugin.settings.apiKey)
-          .onChange(async (value) => {
-            this.plugin.settings.apiKey = value.trim();
-            await this.plugin.saveSettings();
-          })
-      );
+    if (!this.plugin.settings.hideAi) {
+      containerEl.createEl("p", {
+        text: "The blank detection works fully offline. AI Fill is optional and requires an API key.",
+        cls: "setting-item-description",
+      });
+
+      new Setting(containerEl)
+        .setName("AI Provider")
+        .setDesc("Choose which AI provider to use for AI Fill (optional)")
+        .addDropdown((drop) =>
+          drop
+            .addOption("anthropic", "Anthropic (Claude)")
+            .addOption("openai", "OpenAI (GPT-4o)")
+            .setValue(this.plugin.settings.apiProvider)
+            .onChange(async (value) => {
+              this.plugin.settings.apiProvider = value as "anthropic" | "openai";
+              await this.plugin.saveSettings();
+            })
+        );
+
+      new Setting(containerEl)
+        .setName("API Key")
+        .setDesc("API key for AI Fill. Leave empty for offline-only mode.")
+        .addText((text) =>
+          text
+            .setPlaceholder("sk-...")
+            .setValue(this.plugin.settings.apiKey)
+            .onChange(async (value) => {
+              this.plugin.settings.apiKey = value.trim();
+              await this.plugin.saveSettings();
+            })
+        );
+    }
   }
 }
