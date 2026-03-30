@@ -17,7 +17,7 @@ Detect blank fields in PDF worksheets and fill them in — **fully offline** usi
 Run this single command (works on Windows, macOS, and Linux — run it as many times as you want):
 
 ```
-node -e "const{execSync:r}=require('child_process'),f=require('fs');f.existsSync('obsidian-blanq')?r('git pull',{cwd:'obsidian-blanq',stdio:'inherit'}):r('git clone https://github.com/Schnovak/obsidian-blanq.git',{stdio:'inherit'});r('node install.js',{cwd:'obsidian-blanq',stdio:'inherit'})"
+node -e "const{execSync:r}=require('child_process'),f=require('fs');f.existsSync('obsidian-blanq')?r('git checkout . && git pull',{cwd:'obsidian-blanq',stdio:'inherit'}):r('git clone https://github.com/Schnovak/obsidian-blanq.git',{stdio:'inherit'});r('node install.js',{cwd:'obsidian-blanq',stdio:'inherit'})"
 ```
 
 The installer will:
