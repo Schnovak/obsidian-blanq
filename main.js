@@ -77175,6 +77175,9 @@ var BlanqView = class extends import_obsidian.FileView {
       curFs = Math.max(curFs - 0.5, 5);
       applySize(curFs);
     }
+    const contentH = ta.scrollHeight;
+    const slack = boxH - contentH;
+    ta.style.paddingTop = (slack > 1 ? slack : 0) + "px";
   }
   handleAddBlankClick(e, wrap, canvas, pageNum) {
     if (!this.addBlankMode) return;

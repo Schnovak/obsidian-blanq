@@ -509,6 +509,11 @@ export class BlanqView extends FileView {
       curFs = Math.max(curFs - 0.5, 5);
       applySize(curFs);
     }
+
+    // Push text to bottom of box (extra space on top, text sits on the line)
+    const contentH = ta.scrollHeight;
+    const slack = boxH - contentH;
+    ta.style.paddingTop = (slack > 1 ? slack : 0) + "px";
   }
 
   private handleAddBlankClick(
