@@ -9,8 +9,11 @@ const os = require("os");
 const { execSync } = require("child_process");
 const readline = require("readline");
 
+const https = require("https");
+
 const PLUGIN_ID = "blanq-worksheet";
 const SCRIPT_DIR = __dirname;
+const MODEL_URL = "https://github.com/Schnovak/obsidian-blanq/releases/download/v1.0.0/FFDNet-S.onnx";
 
 // ── Colors (ANSI, works in modern terminals + Windows Terminal) ──
 const BOLD = "\x1b[1m", DIM = "\x1b[2m", NC = "\x1b[0m";
@@ -164,8 +167,52 @@ function scanForVaults(knownVaults) {
   return found;
 }
 
+// ── Download file with redirect support ──
+function download(url, dest) {
+  return new Promise((resolve, reject) => {
+    const file = fs.createWriteStream(dest);
+    let totalBytes = 0;
+    let receivedBytes = 0;
+
+    function follow(url) {
+      https.get(url, (res) => {
+        // Follow redirects (GitHub uses 302)
+        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+          follow(res.headers.location);
+          return;
+        }
+        if (res.statusCode !== 200) {
+          fs.unlinkSync(dest);
+          reject(new Error(`Download failed: HTTP ${res.statusCode}`));
+          return;
+        }
+        totalBytes = parseInt(res.headers["content-length"] || "0", 10);
+        res.pipe(file);
+        res.on("data", (chunk) => {
+          receivedBytes += chunk.length;
+          if (totalBytes > 0) {
+            const pct = Math.round((receivedBytes / totalBytes) * 100);
+            const mb = (receivedBytes / 1e6).toFixed(1);
+            const totalMb = (totalBytes / 1e6).toFixed(1);
+            process.stdout.write(`\r  ${CYAN}▸${NC} Downloading model... ${mb}/${totalMb} MB (${pct}%)`);
+          }
+        });
+        file.on("finish", () => {
+          file.close();
+          process.stdout.write("\n");
+          resolve();
+        });
+      }).on("error", (e) => {
+        fs.unlinkSync(dest);
+        reject(e);
+      });
+    }
+    follow(url);
+  });
+}
+
 // ── Check prerequisites ──
-function checkPrereqs() {
+async function checkPrereqs() {
   step("1/4", "Checking prerequisites");
 
   let missing = false;
@@ -182,7 +229,13 @@ function checkPrereqs() {
     missing = true;
   }
 
-  // Check model
+  if (missing) {
+    console.log();
+    err("Missing prerequisites. Fix the above issues and try again.");
+    process.exit(1);
+  }
+
+  // Check model — download if missing
   let modelPath = path.join(SCRIPT_DIR, "FFDNet-S.onnx");
   if (!fs.existsSync(modelPath)) {
     modelPath = path.join(SCRIPT_DIR, "..", "FFDNet-S.onnx");
@@ -190,16 +243,17 @@ function checkPrereqs() {
   if (fs.existsSync(modelPath)) {
     ok(`Model found: FFDNet-S.onnx (${fileSize(modelPath)})`);
   } else {
-    err("FFDNet-S.onnx not found in plugin directory or parent directory");
-    warn("Place the model file next to this installer or in the parent directory.");
-    missing = true;
-    modelPath = null;
-  }
-
-  if (missing) {
-    console.log();
-    err("Missing prerequisites. Fix the above issues and try again.");
-    process.exit(1);
+    modelPath = path.join(SCRIPT_DIR, "FFDNet-S.onnx");
+    info("Model not found — downloading from GitHub release...");
+    try {
+      await download(MODEL_URL, modelPath);
+      ok(`Model downloaded: FFDNet-S.onnx (${fileSize(modelPath)})`);
+    } catch (e) {
+      err(`Failed to download model: ${e.message}`);
+      warn("You can manually download it from:");
+      warn(MODEL_URL);
+      process.exit(1);
+    }
   }
 
   return modelPath;
@@ -380,7 +434,7 @@ function showNextSteps() {
 // ── Main ──
 async function main() {
   header();
-  const modelPath = checkPrereqs();
+  const modelPath = await checkPrereqs();
   buildPlugin();
   const vaults = await selectVaults();
   installToVaults(vaults, modelPath);
