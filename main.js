@@ -76803,33 +76803,59 @@ function findEnclosingBox(canvas, cx, cy) {
 
 // src/blanq-view.ts
 var VIEW_TYPE_BLANQ = "blanq-worksheet-view";
-var BlanqView = class extends import_obsidian.ItemView {
+var BlanqView = class extends import_obsidian.FileView {
   constructor(leaf, plugin) {
     super(leaf);
-    this.pdfFile = null;
     this.pdfBytes = null;
     this.blanks = [];
     this.pageTexts = {};
     this.addBlankMode = false;
+    this.uiBuilt = false;
     this.plugin = plugin;
   }
   getViewType() {
     return VIEW_TYPE_BLANQ;
   }
   getDisplayText() {
-    return this.pdfFile ? `Blanq: ${this.pdfFile.name}` : "Blanq Worksheet";
+    return this.file ? `Blanq: ${this.file.name}` : "Blanq Worksheet";
   }
   getIcon() {
     return "file-text";
+  }
+  canAcceptExtension(extension) {
+    return extension === "pdf";
   }
   async onOpen() {
     const container = this.containerEl.children[1];
     container.empty();
     container.addClass("blanq-container");
     this.buildUI(container);
+    this.uiBuilt = true;
   }
   async onClose() {
     disposeModel();
+  }
+  // Called by Obsidian when a PDF file is opened into this view
+  async onLoadFile(file) {
+    await super.onLoadFile(file);
+    if (!this.uiBuilt) {
+      const waitForUI = () => {
+        if (this.uiBuilt) {
+          this.loadPdfFromFile(file);
+        } else {
+          setTimeout(waitForUI, 50);
+        }
+      };
+      waitForUI();
+      return;
+    }
+    await this.loadPdfFromFile(file);
+  }
+  async loadPdfFromFile(file) {
+    const data = await this.app.vault.readBinary(file);
+    this.pdfBytes = new Uint8Array(data);
+    this.leaf.updateHeader();
+    await this.analyze();
   }
   buildUI(container) {
     const style = container.createEl("style");
@@ -76856,6 +76882,11 @@ var BlanqView = class extends import_obsidian.ItemView {
       const ff = fontSel.value === "jetbrains" ? "JetBrains Mono" : "Kalam";
       container.querySelectorAll(".blanq-overlay-input").forEach((ta) => ta.style.fontFamily = ff + ",cursive");
     });
+    const rotateBtn = toolbar.createEl("button", {
+      text: "Rotate",
+      cls: "blanq-btn blanq-btn-ghost"
+    });
+    rotateBtn.addEventListener("click", () => this.rotatePdf());
     const aiBtn = toolbar.createEl("button", {
       text: "AI Fill",
       cls: "blanq-btn blanq-btn-ai"
@@ -76913,7 +76944,7 @@ var BlanqView = class extends import_obsidian.ItemView {
     this._refs.log.scrollTop = 1e9;
   }
   async loadPdf(file) {
-    this.pdfFile = file;
+    this.file = file;
     this.leaf.updateHeader();
     const data = await this.app.vault.readBinary(file);
     this.pdfBytes = new Uint8Array(data);
@@ -77192,6 +77223,27 @@ var BlanqView = class extends import_obsidian.ItemView {
     this._refs.exportBtn.style.display = "";
     this._refs.aiBtn.disabled = !this.plugin.settings.apiKey;
   }
+  // ── Rotate PDF ──
+  async rotatePdf() {
+    if (!this.pdfBytes) return;
+    this.log("Rotating PDF...");
+    try {
+      const { PDFDocument, degrees } = await Promise.resolve().then(() => __toESM(require_cjs()));
+      const doc = await PDFDocument.load(this.pdfBytes, { ignoreEncryption: true });
+      const pages = doc.getPages();
+      for (const page of pages) {
+        const cur = page.getRotation().angle;
+        page.setRotation(degrees((cur + 90) % 360));
+      }
+      this.pdfBytes = new Uint8Array(await doc.save());
+      this.blanks = [];
+      this.pageTexts = {};
+      await this.analyze();
+      this.log("Rotated 90\xB0", "ok");
+    } catch (err) {
+      this.log(`Rotate failed: ${err.message}`, "err");
+    }
+  }
   // ── AI Fill ──
   async aiFill(btn) {
     const { apiKey, apiProvider } = this.plugin.settings;
@@ -77386,11 +77438,11 @@ Respond ONLY with JSON: [{"id": 1, "answer": "..."}, ...]`;
         }
       }
       const out = await doc.save();
-      if (this.pdfFile) {
-        await this.app.vault.modifyBinary(this.pdfFile, out);
+      if (this.file) {
+        await this.app.vault.modifyBinary(this.file, out);
         this.pdfBytes = new Uint8Array(out);
-        this.log(`Saved to ${this.pdfFile.path}`, "ok");
-        new import_obsidian.Notice(`Blanq: Saved ${this.pdfFile.name}`);
+        this.log(`Saved to ${this.file.path}`, "ok");
+        new import_obsidian.Notice(`Blanq: Saved ${this.file.name}`);
       } else {
         const path2 = "blanq-filled.pdf";
         const existing = this.app.vault.getAbstractFileByPath(path2);
@@ -77510,6 +77562,7 @@ var BLANQ_CSS = `
   border: none;
   outline: none;
   color: #1a1a2a;
+  caret-color: #1a1a2a;
   padding: 0 3px;
   margin: 0;
   resize: none;
@@ -77524,6 +77577,7 @@ var BLANQ_CSS = `
 }
 .blanq-overlay-input:focus {
   background: rgba(255,255,255,0.92);
+  caret-color: #1a1a2a;
   box-shadow: 0 0 0 2px rgba(99,102,241,0.6);
 }
 .blanq-overlay-input.filled {
@@ -77551,6 +77605,23 @@ var BlanqPlugin = class extends import_obsidian2.Plugin {
   async onload() {
     await this.loadSettings();
     this.registerView(VIEW_TYPE_BLANQ, (leaf) => new BlanqView(leaf, this));
+    try {
+      this.registerExtensions(["pdf"], VIEW_TYPE_BLANQ);
+    } catch {
+      this.registerEvent(
+        this.app.workspace.on("file-open", (file) => {
+          if (file instanceof import_obsidian2.TFile && file.extension === "pdf") {
+            const blanqLeaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_BLANQ);
+            const alreadyOpen = blanqLeaves.some(
+              (l) => l.view.getDisplayText() === `Blanq: ${file.name}`
+            );
+            if (!alreadyOpen) {
+              this.openPdfInBlanq(file);
+            }
+          }
+        })
+      );
+    }
     this.addRibbonIcon("file-text", "Open Blanq Worksheet", () => {
       this.activateView();
     });
@@ -77577,19 +77648,6 @@ var BlanqPlugin = class extends import_obsidian2.Plugin {
           menu.addItem((item) => {
             item.setTitle("Open in Blanq").setIcon("file-text").onClick(() => this.openPdfInBlanq(file));
           });
-        }
-      })
-    );
-    this.registerEvent(
-      this.app.workspace.on("file-open", (file) => {
-        if (file instanceof import_obsidian2.TFile && file.extension === "pdf") {
-          const blanqLeaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_BLANQ);
-          const alreadyOpen = blanqLeaves.some(
-            (l) => l.view.getDisplayText() === `Blanq: ${file.name}`
-          );
-          if (!alreadyOpen) {
-            this.openPdfInBlanq(file);
-          }
         }
       })
     );

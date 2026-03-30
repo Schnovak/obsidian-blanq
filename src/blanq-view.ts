@@ -1,19 +1,19 @@
 /**
- * BlanqView — Obsidian ItemView that renders a PDF, detects blanks, and lets users fill them.
+ * BlanqView — Obsidian FileView that renders a PDF, detects blanks, and lets users fill them.
  */
-import { ItemView, WorkspaceLeaf, Notice, TFile } from "obsidian";
+import { FileView, WorkspaceLeaf, Notice, TFile } from "obsidian";
 import { detectBlanks, findEnclosingBox, disposeModel, type BlankBox } from "./detection";
 import type BlanqPlugin from "./main";
 
 export const VIEW_TYPE_BLANQ = "blanq-worksheet-view";
 
-export class BlanqView extends ItemView {
+export class BlanqView extends FileView {
   plugin: BlanqPlugin;
-  private pdfFile: TFile | null = null;
   private pdfBytes: Uint8Array | null = null;
   private blanks: BlankBox[] = [];
   private pageTexts: Record<number, string> = {};
   private addBlankMode = false;
+  private uiBuilt = false;
 
   constructor(leaf: WorkspaceLeaf, plugin: BlanqPlugin) {
     super(leaf);
@@ -25,11 +25,15 @@ export class BlanqView extends ItemView {
   }
 
   getDisplayText(): string {
-    return this.pdfFile ? `Blanq: ${this.pdfFile.name}` : "Blanq Worksheet";
+    return this.file ? `Blanq: ${this.file.name}` : "Blanq Worksheet";
   }
 
   getIcon(): string {
     return "file-text";
+  }
+
+  canAcceptExtension(extension: string): boolean {
+    return extension === "pdf";
   }
 
   async onOpen(): Promise<void> {
@@ -37,10 +41,37 @@ export class BlanqView extends ItemView {
     container.empty();
     container.addClass("blanq-container");
     this.buildUI(container);
+    this.uiBuilt = true;
   }
 
   async onClose(): Promise<void> {
     disposeModel();
+  }
+
+  // Called by Obsidian when a PDF file is opened into this view
+  async onLoadFile(file: TFile): Promise<void> {
+    await super.onLoadFile(file);
+    if (!this.uiBuilt) {
+      // UI not ready yet — onOpen hasn't fired. It will call analyze via loadPdf flow.
+      // We just need to wait for UI to be built, then load.
+      const waitForUI = () => {
+        if (this.uiBuilt) {
+          this.loadPdfFromFile(file);
+        } else {
+          setTimeout(waitForUI, 50);
+        }
+      };
+      waitForUI();
+      return;
+    }
+    await this.loadPdfFromFile(file);
+  }
+
+  private async loadPdfFromFile(file: TFile): Promise<void> {
+    const data = await this.app.vault.readBinary(file);
+    this.pdfBytes = new Uint8Array(data);
+    this.leaf.updateHeader();
+    await this.analyze();
   }
 
   private buildUI(container: HTMLElement): void {
@@ -77,6 +108,13 @@ export class BlanqView extends ItemView {
         .querySelectorAll<HTMLTextAreaElement>(".blanq-overlay-input")
         .forEach((ta) => (ta.style.fontFamily = ff + ",cursive"));
     });
+
+    // Rotate button
+    const rotateBtn = toolbar.createEl("button", {
+      text: "Rotate",
+      cls: "blanq-btn blanq-btn-ghost",
+    });
+    rotateBtn.addEventListener("click", () => this.rotatePdf());
 
     // AI Fill button (only works with API key in settings)
     const aiBtn = toolbar.createEl("button", {
@@ -167,7 +205,8 @@ export class BlanqView extends ItemView {
   }
 
   async loadPdf(file: TFile): Promise<void> {
-    this.pdfFile = file;
+    // Set the file on the FileView so getDisplayText works
+    this.file = file;
     this.leaf.updateHeader();
     const data = await this.app.vault.readBinary(file);
     this.pdfBytes = new Uint8Array(data);
@@ -541,6 +580,29 @@ export class BlanqView extends ItemView {
     this._refs.aiBtn.disabled = !this.plugin.settings.apiKey;
   }
 
+  // ── Rotate PDF ──
+  private async rotatePdf(): Promise<void> {
+    if (!this.pdfBytes) return;
+    this.log("Rotating PDF...");
+    try {
+      const { PDFDocument, degrees } = await import("pdf-lib");
+      const doc = await PDFDocument.load(this.pdfBytes, { ignoreEncryption: true });
+      const pages = doc.getPages();
+      for (const page of pages) {
+        const cur = page.getRotation().angle;
+        page.setRotation(degrees((cur + 90) % 360));
+      }
+      this.pdfBytes = new Uint8Array(await doc.save());
+      // Clear and re-analyze with rotated PDF
+      this.blanks = [];
+      this.pageTexts = {};
+      await this.analyze();
+      this.log("Rotated 90°", "ok");
+    } catch (err: any) {
+      this.log(`Rotate failed: ${err.message}`, "err");
+    }
+  }
+
   // ── AI Fill ──
   private async aiFill(btn: HTMLButtonElement): Promise<void> {
     const { apiKey, apiProvider } = this.plugin.settings;
@@ -773,12 +835,12 @@ export class BlanqView extends ItemView {
       const out = await doc.save();
 
       // Overwrite the original PDF
-      if (this.pdfFile) {
-        await this.app.vault.modifyBinary(this.pdfFile, out);
+      if (this.file) {
+        await this.app.vault.modifyBinary(this.file, out);
         // Update our local copy so further edits build on the saved version
         this.pdfBytes = new Uint8Array(out);
-        this.log(`Saved to ${this.pdfFile.path}`, "ok");
-        new Notice(`Blanq: Saved ${this.pdfFile.name}`);
+        this.log(`Saved to ${this.file.path}`, "ok");
+        new Notice(`Blanq: Saved ${this.file.name}`);
       } else {
         // No source file (shouldn't happen), save as new
         const path = "blanq-filled.pdf";
@@ -900,6 +962,7 @@ const BLANQ_CSS = `
   border: none;
   outline: none;
   color: #1a1a2a;
+  caret-color: #1a1a2a;
   padding: 0 3px;
   margin: 0;
   resize: none;
@@ -914,6 +977,7 @@ const BLANQ_CSS = `
 }
 .blanq-overlay-input:focus {
   background: rgba(255,255,255,0.92);
+  caret-color: #1a1a2a;
   box-shadow: 0 0 0 2px rgba(99,102,241,0.6);
 }
 .blanq-overlay-input.filled {

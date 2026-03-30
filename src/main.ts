@@ -1,4 +1,4 @@
-import { Plugin, TFile, WorkspaceLeaf, PluginSettingTab, App, Setting } from "obsidian";
+import { Plugin, TFile, WorkspaceLeaf, PluginSettingTab, App, Setting, ViewCreator } from "obsidian";
 import { BlanqView, VIEW_TYPE_BLANQ } from "./blanq-view";
 import path from "path";
 
@@ -20,6 +20,26 @@ export default class BlanqPlugin extends Plugin {
 
     // Register the custom view
     this.registerView(VIEW_TYPE_BLANQ, (leaf) => new BlanqView(leaf, this));
+
+    // Replace the default PDF viewer — register as the pdf extension handler
+    try {
+      this.registerExtensions(["pdf"], VIEW_TYPE_BLANQ);
+    } catch {
+      // Extension already registered by another plugin; fall back to file-open interception
+      this.registerEvent(
+        this.app.workspace.on("file-open", (file) => {
+          if (file instanceof TFile && file.extension === "pdf") {
+            const blanqLeaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_BLANQ);
+            const alreadyOpen = blanqLeaves.some(
+              (l) => (l.view as BlanqView).getDisplayText() === `Blanq: ${file.name}`
+            );
+            if (!alreadyOpen) {
+              this.openPdfInBlanq(file);
+            }
+          }
+        })
+      );
+    }
 
     // Add ribbon icon
     this.addRibbonIcon("file-text", "Open Blanq Worksheet", () => {
@@ -57,22 +77,6 @@ export default class BlanqPlugin extends Plugin {
               .setIcon("file-text")
               .onClick(() => this.openPdfInBlanq(file));
           });
-        }
-      })
-    );
-
-    // Open PDFs in Blanq when clicked in file explorer
-    this.registerEvent(
-      this.app.workspace.on("file-open", (file) => {
-        if (file instanceof TFile && file.extension === "pdf") {
-          // Check if there's already a Blanq view for this — avoid infinite loops
-          const blanqLeaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_BLANQ);
-          const alreadyOpen = blanqLeaves.some(
-            (l) => (l.view as BlanqView).getDisplayText() === `Blanq: ${file.name}`
-          );
-          if (!alreadyOpen) {
-            this.openPdfInBlanq(file);
-          }
         }
       })
     );
