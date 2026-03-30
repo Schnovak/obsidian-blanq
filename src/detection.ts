@@ -98,20 +98,47 @@ export async function loadModel(modelPath: string, pluginDir: string): Promise<a
 
   const ort = getOrt(pluginDir);
 
+  // Log what we got from ort
+  console.log("[Blanq] ort keys:", Object.keys(ort).join(", "));
+  console.log("[Blanq] InferenceSession:", typeof ort.InferenceSession);
+  console.log("[Blanq] InferenceSession.create:", typeof ort.InferenceSession?.create);
+  if (ort.env) {
+    console.log("[Blanq] ort.env.wasm:", JSON.stringify(ort.env?.wasm || {}));
+    console.log("[Blanq] ort.env.logLevel:", ort.env?.logLevel);
+    // Enable verbose logging
+    ort.env.logLevel = "verbose";
+  }
+
   // Read model as ArrayBuffer
   console.log("[Blanq] Reading model into memory...");
   const modelBuffer = fs.readFileSync(modelPath);
+  const arrayBuffer = modelBuffer.buffer.slice(
+    modelBuffer.byteOffset,
+    modelBuffer.byteOffset + modelBuffer.byteLength
+  );
   console.log(`[Blanq] Model size: ${(modelBuffer.length / 1e6).toFixed(1)} MB`);
+  console.log(`[Blanq] ArrayBuffer byteLength: ${arrayBuffer.byteLength}`);
 
+  // Try with a timeout to detect hangs
   console.log("[Blanq] Creating inference session...");
+  const timer = setInterval(() => {
+    console.log("[Blanq] ...still waiting for InferenceSession.create...");
+  }, 3000);
+
   try {
-    modelSession = await ort.InferenceSession.create(modelBuffer.buffer, {
-      executionProviders: ["cpu"],
-    });
+    modelSession = await ort.InferenceSession.create(
+      new Uint8Array(arrayBuffer),
+      { executionProviders: ["cpu"] }
+    );
   } catch (e: any) {
-    console.error("[Blanq] InferenceSession.create failed:", e);
+    clearInterval(timer);
+    console.error("[Blanq] InferenceSession.create FAILED:", e);
+    console.error("[Blanq] Error name:", e.name);
+    console.error("[Blanq] Error message:", e.message);
+    console.error("[Blanq] Error stack:", e.stack);
     throw e;
   }
+  clearInterval(timer);
   console.log("[Blanq] Model loaded successfully");
   return modelSession;
 }
