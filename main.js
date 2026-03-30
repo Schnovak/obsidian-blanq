@@ -76521,45 +76521,60 @@ var ortLib = null;
 var modelSession = null;
 function getOrt(pluginDir) {
   if (ortLib) return ortLib;
-  const ortPath = require("path").join(pluginDir, "ort.all.min.js");
-  console.log(`[Blanq] Loading ONNX Runtime from: ${ortPath}`);
+  const pathMod = require("path");
   const fs = require("fs");
-  if (!fs.existsSync(ortPath)) {
-    throw new Error(`ort.all.min.js not found at: ${ortPath}`);
+  const Module = require("module");
+  const pluginNodeModules = pathMod.join(pluginDir, "node_modules");
+  const ortNodePkg = pathMod.join(pluginNodeModules, "onnxruntime-node");
+  if (fs.existsSync(ortNodePkg)) {
+    console.log(`[Blanq] Found onnxruntime-node at: ${ortNodePkg}`);
+    const origResolvePaths = Module._resolveLookupPaths;
+    const origResolve = Module._resolveFilename;
+    Module._resolveFilename = function(request, parent, ...args) {
+      if (request === "onnxruntime-node" || request === "onnxruntime-common" || request.startsWith("onnxruntime-")) {
+        const customPath = pathMod.join(pluginNodeModules, request);
+        if (fs.existsSync(customPath)) {
+          const pkg = JSON.parse(fs.readFileSync(pathMod.join(customPath, "package.json"), "utf8"));
+          return pathMod.join(customPath, pkg.main || "index.js");
+        }
+      }
+      return origResolve.call(this, request, parent, ...args);
+    };
+    try {
+      ortLib = require(pathMod.join(ortNodePkg, "dist", "index.js"));
+      console.log("[Blanq] ONNX Runtime Node loaded OK");
+    } catch (e) {
+      console.warn(`[Blanq] onnxruntime-node failed: ${e.message}`);
+      ortLib = null;
+    } finally {
+      Module._resolveFilename = origResolve;
+    }
+    if (ortLib) return ortLib;
   }
-  ortLib = require(ortPath);
-  console.log("[Blanq] ONNX Runtime loaded OK");
-  return ortLib;
+  const ortPath = pathMod.join(pluginDir, "ort.all.min.js");
+  if (fs.existsSync(ortPath)) {
+    console.log(`[Blanq] Loading ONNX Runtime WASM from: ${ortPath}`);
+    ortLib = require(ortPath);
+    console.log("[Blanq] ONNX Runtime WASM loaded OK");
+    return ortLib;
+  }
+  throw new Error("No ONNX Runtime found in plugin directory");
 }
 async function loadModel(modelPath, pluginDir) {
   if (modelSession) return modelSession;
   console.log(`[Blanq] Loading model from: ${modelPath}`);
   const fs = require("fs");
-  const pathMod = require("path");
   if (!fs.existsSync(modelPath)) {
     throw new Error(`Model not found at: ${modelPath}`);
   }
   const ort = getOrt(pluginDir);
-  ort.env.wasm.numThreads = 1;
-  ort.env.wasm.proxy = false;
-  const wasmFiles = fs.readdirSync(pluginDir).filter((f) => f.endsWith(".wasm"));
-  console.log(`[Blanq] Found WASM files: ${wasmFiles.join(", ")}`);
-  const wasmPaths = {};
-  for (const wf of wasmFiles) {
-    const fullPath = pathMod.join(pluginDir, wf);
-    const buf = fs.readFileSync(fullPath);
-    const blob = new Blob([buf], { type: "application/wasm" });
-    wasmPaths[wf] = URL.createObjectURL(blob);
-    console.log(`[Blanq] WASM blob: ${wf} (${(buf.length / 1e6).toFixed(1)} MB)`);
-  }
-  ort.env.wasm.wasmPaths = wasmPaths;
   console.log("[Blanq] Reading model into memory...");
   const modelBuffer = fs.readFileSync(modelPath);
   console.log(`[Blanq] Model size: ${(modelBuffer.length / 1e6).toFixed(1)} MB`);
-  console.log("[Blanq] Creating inference session (this may take a moment)...");
+  console.log("[Blanq] Creating inference session...");
   try {
     modelSession = await ort.InferenceSession.create(modelBuffer.buffer, {
-      executionProviders: ["wasm"]
+      executionProviders: ["cpu"]
     });
   } catch (e) {
     console.error("[Blanq] InferenceSession.create failed:", e);

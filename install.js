@@ -26,6 +26,19 @@ const err  = (m) => console.log(`  ${RED}✗${NC} ${m}`);
 const info = (m) => console.log(`  ${CYAN}▸${NC} ${m}`);
 const step = (n, m) => console.log(`\n${BOLD}${MAGENTA}[${n}]${NC} ${BOLD}${m}${NC}`);
 
+function copyDirRecursive(src, dest) {
+  fs.mkdirSync(dest, { recursive: true });
+  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+    if (entry.isDirectory()) {
+      copyDirRecursive(srcPath, destPath);
+    } else {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
+}
+
 function ask(question) {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
   return new Promise((resolve) => {
@@ -393,6 +406,16 @@ function installToVaults(vaults, modelPath) {
 
     // Copy model
     fs.copyFileSync(modelPath, path.join(dest, "FFDNet-S.onnx"));
+
+    // Copy node_modules (onnxruntime-node + onnxruntime-common)
+    const nmSrc = path.join(SCRIPT_DIR, "node_modules");
+    const nmDest = path.join(dest, "node_modules");
+    for (const pkg of ["onnxruntime-node", "onnxruntime-common"]) {
+      const pkgSrc = path.join(nmSrc, pkg);
+      if (fs.existsSync(pkgSrc)) {
+        copyDirRecursive(pkgSrc, path.join(nmDest, pkg));
+      }
+    }
 
     ok(`Installed to ${vname} (${dirSize(dest)})`);
   }

@@ -1,7 +1,20 @@
 import esbuild from "esbuild";
-import { copyFileSync, mkdirSync, existsSync, readdirSync } from "fs";
+import { copyFileSync, mkdirSync, existsSync, readdirSync, statSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
+
+function copyDirSync(src, dest) {
+  mkdirSync(dest, { recursive: true });
+  for (const entry of readdirSync(src, { withFileTypes: true })) {
+    const srcPath = join(src, entry.name);
+    const destPath = join(dest, entry.name);
+    if (entry.isDirectory()) {
+      copyDirSync(srcPath, destPath);
+    } else {
+      copyFileSync(srcPath, destPath);
+    }
+  }
+}
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const watch = process.argv.includes("--watch");
@@ -25,6 +38,16 @@ function copyAssets() {
     }
   }
 
+  // Copy onnxruntime-node + onnxruntime-common for native inference
+  const pluginNM = join(outDir, "node_modules");
+  mkdirSync(pluginNM, { recursive: true });
+  for (const pkg of ["onnxruntime-node", "onnxruntime-common"]) {
+    const src = join(__dirname, "node_modules", pkg);
+    if (existsSync(src)) {
+      copyDirSync(src, join(pluginNM, pkg));
+    }
+  }
+
   // Copy pdf.js worker
   const pdfWorker = join(__dirname, "node_modules", "pdfjs-dist", "build", "pdf.worker.min.js");
   if (existsSync(pdfWorker)) {
@@ -44,7 +67,7 @@ const ctx = await esbuild.context({
   outfile: "main.js",
   platform: "node",
   format: "cjs",
-  external: ["obsidian", "electron", "canvas", "./ort.all.min.js"],
+  external: ["obsidian", "electron", "canvas", "./ort.all.min.js", "onnxruntime-node"],
   sourcemap: false,
   treeShaking: true,
   define: {

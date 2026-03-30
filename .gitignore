@@ -30,5 +30,9 @@ ort.jspi.min.mjs
 ort.jspi.bundle.min.mjs
 ort.node.min.mjs
 
+# Native ONNX Runtime (copied during build)
+onnxruntime-node/
+node_modules/
+
 # The model is large — downloaded from GitHub release
 FFDNet-S.onnx
