@@ -1,0 +1,9 @@
+node_modules/
+dist/
+
+# Built WASM files (copied from node_modules during build)
+*.wasm
+*.mjs
+
+# The model is large — track with Git LFS or download separately
+FFDNet-S.onnx

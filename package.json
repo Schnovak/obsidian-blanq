@@ -1,0 +1,21 @@
+{
+  "name": "obsidian-blanq-plugin",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node esbuild.config.mjs",
+    "dev": "node esbuild.config.mjs --watch"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "esbuild": "^0.21.0",
+    "obsidian": "^1.5.0",
+    "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "onnxruntime-web": "^1.18.0",
+    "pdfjs-dist": "^3.11.174",
+    "pdf-lib": "^1.17.1",
+    "@pdf-lib/fontkit": "^1.1.1"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "id": "blanq-worksheet",
+  "name": "Blanq Worksheet",
+  "version": "1.0.0",
+  "minAppVersion": "1.0.0",
+  "description": "Detect blank fields in PDF worksheets and fill them in — fully offline using a local ONNX model.",
+  "author": "novak",
+  "isDesktopOnly": true
+}
