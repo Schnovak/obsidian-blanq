@@ -14,12 +14,12 @@ Detect blank fields in PDF worksheets and fill them in — **fully offline** usi
 
 ## Quick Install
 
-Clone the repo and run the interactive installer:
+Clone the repo and run the interactive installer (works on Windows, macOS, and Linux):
 
-```bash
+```
 git clone https://github.com/Schnovak/obsidian-blanq.git
 cd obsidian-blanq
-./install.sh
+node install.js
 ```
 
 The installer will:
