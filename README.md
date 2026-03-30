@@ -9,16 +9,34 @@ Detect blank fields in PDF worksheets and fill them in — **fully offline** usi
 - **Add blanks manually** — Click "Add Blank" then click any bordered area on the PDF.
 - **Tab navigation** — Tab/Shift+Tab to jump between blanks in reading order.
 - **AI Fill (optional)** — If you have an Anthropic or OpenAI API key, automatically fill in answers. Requires internet.
-- **PDF export** — Export the filled worksheet as a new PDF saved to your vault.
+- **Save in place** — Save filled answers directly into the original PDF.
 - **Click-to-open** — Clicking any PDF in Obsidian's file explorer opens it in Blanq.
 
-## Installation
+## Quick Install
 
-### Manual install
+Clone the repo and run the interactive installer:
 
-1. Clone or download this repo into your vault's plugin folder:
-   ```
-   <your-vault>/.obsidian/plugins/blanq-worksheet/
+```bash
+git clone https://github.com/Schnovak/obsidian-blanq.git
+cd obsidian-blanq
+./install.sh
+```
+
+The installer will:
+1. Check prerequisites (Node.js, npm, model file)
+2. Build the plugin
+3. Find all Obsidian vaults on your system
+4. Let you choose which vaults to install to
+5. Copy all necessary files and show next steps
+
+> **Note:** You need `FFDNet-S.onnx` in the repo directory or its parent. The installer will find it automatically.
+
+## Manual Installation
+
+1. Clone or download this repo:
+   ```bash
+   git clone https://github.com/Schnovak/obsidian-blanq.git
+   cd obsidian-blanq
    ```
 
 2. Install dependencies and build:
@@ -27,29 +45,21 @@ Detect blank fields in PDF worksheets and fill them in — **fully offline** usi
    npm run build
    ```
 
-3. Copy the ONNX model into the plugin folder:
-   ```bash
-   cp /path/to/FFDNet-S.onnx <your-vault>/.obsidian/plugins/blanq-worksheet/
-   ```
+3. Copy these files to `<your-vault>/.obsidian/plugins/blanq-worksheet/`:
+   - `main.js`
+   - `manifest.json`
+   - `FFDNet-S.onnx` (detection model, ~37 MB)
+   - All `*.wasm` and `*.mjs` files (ONNX Runtime)
 
-4. In Obsidian, go to **Settings → Community Plugins** and enable **Blanq Worksheet**.
-
-### Required files in the plugin folder
-
-After building, your plugin folder should contain:
-- `main.js` — Plugin code
-- `manifest.json` — Plugin metadata
-- `FFDNet-S.onnx` — Detection model (~37 MB)
-- `ort-wasm-simd-threaded.wasm` — ONNX Runtime WASM (~12 MB)
-- Other `.wasm` / `.mjs` files — ONNX Runtime support files
+4. In Obsidian: **Settings → Community Plugins → Turn off Restricted Mode → Enable Blanq Worksheet**
 
 ## Usage
 
-1. **Open a PDF** — Click any PDF in the file explorer, or use the ribbon icon / command palette ("Open Blanq Worksheet").
+1. **Open a PDF** — Click any PDF in the file explorer, or use the command palette ("Open Blanq Worksheet").
 2. **Fill in blanks** — Click on detected blank fields and type your answers.
 3. **Add blanks manually** — Click "+ Add Blank" in the toolbar, then click a bordered area on the PDF.
 4. **AI Fill** (optional) — Configure an API key in Settings, then click "AI Fill" to auto-fill answers.
-5. **Export** — Click "Export PDF" to save the filled worksheet to your vault.
+5. **Save** — Click "Save" to write your answers into the original PDF.
 
 ## Settings
 
@@ -70,4 +80,4 @@ npm run build  # Production build
 
 The plugin uses a fine-tuned YOLO11s model (`FFDNet-S.onnx`) to detect text input fields, choice buttons, and other blank regions in worksheet PDFs. The model runs entirely in the browser via ONNX Runtime Web (WebAssembly) — no server or GPU required.
 
-Detected regions are overlaid with editable text areas. When exporting, answers are embedded into the PDF using pdf-lib.
+Detected regions are overlaid with editable text areas. When saving, answers are embedded into the PDF using pdf-lib.
