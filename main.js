@@ -77905,10 +77905,17 @@ var BlanqSettingTab = class extends import_obsidian2.PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
     containerEl.createEl("h2", { text: "Blanq Worksheet Settings" });
-    new import_obsidian2.Setting(containerEl).setName("Hide AI features").setDesc("Remove the AI Fill button and all AI-related UI from the toolbar.").addToggle(
+    new import_obsidian2.Setting(containerEl).setName("Hide AI features").setDesc("Remove the AI Fill button and all AI-related UI from the toolbar. Requires reload.").addToggle(
       (toggle) => toggle.setValue(this.plugin.settings.hideAi).onChange(async (value) => {
         this.plugin.settings.hideAi = value;
         await this.plugin.saveSettings();
+        this.display();
+      })
+    ).addButton(
+      (btn) => btn.setButtonText("Reload plugin").onClick(async () => {
+        const plugins = this.app.plugins;
+        await plugins.disablePlugin(this.plugin.manifest.id);
+        await plugins.enablePlugin(this.plugin.manifest.id);
       })
     );
     if (!this.plugin.settings.hideAi) {

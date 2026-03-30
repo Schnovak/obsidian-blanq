@@ -183,13 +183,24 @@ class BlanqSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Hide AI features")
-      .setDesc("Remove the AI Fill button and all AI-related UI from the toolbar.")
+      .setDesc("Remove the AI Fill button and all AI-related UI from the toolbar. Requires reload.")
       .addToggle((toggle) =>
         toggle
           .setValue(this.plugin.settings.hideAi)
           .onChange(async (value) => {
             this.plugin.settings.hideAi = value;
             await this.plugin.saveSettings();
+            this.display(); // re-render settings to show/hide AI options + reload button
+          })
+      )
+      .addButton((btn) =>
+        btn
+          .setButtonText("Reload plugin")
+          .onClick(async () => {
+            // Disable then re-enable the plugin to pick up setting changes
+            const plugins = (this.app as any).plugins;
+            await plugins.disablePlugin(this.plugin.manifest.id);
+            await plugins.enablePlugin(this.plugin.manifest.id);
           })
       );
 
