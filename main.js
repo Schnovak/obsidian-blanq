@@ -76526,6 +76526,12 @@ function getOrt(pluginDir) {
   const Module = require("module");
   const pluginNodeModules = pathMod.join(pluginDir, "node_modules");
   const ortNodePkg = pathMod.join(pluginNodeModules, "onnxruntime-node");
+  console.log(`[Blanq] Checking for native ort at: ${ortNodePkg}`);
+  console.log(`[Blanq] node_modules exists: ${fs.existsSync(pluginNodeModules)}`);
+  console.log(`[Blanq] onnxruntime-node exists: ${fs.existsSync(ortNodePkg)}`);
+  if (fs.existsSync(pluginNodeModules)) {
+    console.log(`[Blanq] node_modules contents: ${fs.readdirSync(pluginNodeModules).join(", ")}`);
+  }
   if (fs.existsSync(ortNodePkg)) {
     console.log(`[Blanq] Found onnxruntime-node at: ${ortNodePkg}`);
     const origResolvePaths = Module._resolveLookupPaths;

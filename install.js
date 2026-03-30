@@ -413,7 +413,11 @@ function installToVaults(vaults, modelPath) {
     for (const pkg of ["onnxruntime-node", "onnxruntime-common"]) {
       const pkgSrc = path.join(nmSrc, pkg);
       if (fs.existsSync(pkgSrc)) {
+        info(`Copying ${pkg}...`);
         copyDirRecursive(pkgSrc, path.join(nmDest, pkg));
+        ok(`Copied ${pkg}`);
+      } else {
+        warn(`${pkg} not found at ${pkgSrc}`);
       }
     }
 
