@@ -418,6 +418,16 @@ export class BlanqView extends ItemView {
     ta.dataset.origFs = String(origFs);
     ta.dataset.origLh = String(origLh);
 
+    ta.addEventListener("keydown", (e: KeyboardEvent) => {
+      if (e.key === "Enter") {
+        // Block Enter if adding a newline would overflow
+        const curLh = parseFloat(ta.style.lineHeight);
+        const maxLines = Math.floor(oh / curLh + 0.1);
+        const totalLines = ta.value.split("\n").length;
+        if (totalLines >= maxLines) e.preventDefault();
+      }
+    });
+
     ta.addEventListener("input", () => {
       b.answer = ta.value;
       ta.classList.toggle("filled", !!ta.value.trim());
@@ -886,29 +896,33 @@ const BLANQ_CSS = `
 .blanq-add-mode .blanq-pdf-page { cursor: crosshair; }
 .blanq-overlay-input {
   position: absolute;
-  background: rgba(99,102,241,0.08);
-  border: 1.5px solid rgba(99,102,241,0.25);
-  border-radius: 3px;
-  color: #1a1a4e;
-  padding: 1px 4px;
+  background: rgba(255,255,255,0.0);
+  border: none;
+  outline: none;
+  color: #1a1a2a;
+  padding: 0 3px;
+  margin: 0;
   resize: none;
   overflow: hidden;
-  outline: none;
+  line-height: 1;
+  transition: background 0.15s ease;
+  word-break: break-word;
   box-sizing: border-box;
-  font-size: 14px;
-  transition: border-color 0.15s, background 0.15s;
+}
+.blanq-overlay-input:hover {
+  background: transparent;
 }
 .blanq-overlay-input:focus {
-  border-color: rgba(99,102,241,0.6);
-  background: rgba(99,102,241,0.12);
-  box-shadow: 0 0 0 2px rgba(99,102,241,0.15);
+  background: rgba(255,255,255,0.92);
+  box-shadow: 0 0 0 2px rgba(99,102,241,0.6);
 }
 .blanq-overlay-input.filled {
-  background: rgba(34,197,94,0.08);
-  border-color: rgba(34,197,94,0.3);
+  background: transparent;
+}
+.blanq-overlay-input.filled:focus {
+  background: rgba(255,255,255,0.92);
 }
 .blanq-overlay-input::placeholder {
-  color: rgba(99,102,241,0.4);
-  font-size: 10px;
+  color: transparent;
 }
 `;
