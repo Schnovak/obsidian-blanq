@@ -76535,15 +76535,36 @@ async function loadModel(modelPath, pluginDir) {
   if (modelSession) return modelSession;
   console.log(`[Blanq] Loading model from: ${modelPath}`);
   const fs = require("fs");
+  const pathMod = require("path");
   if (!fs.existsSync(modelPath)) {
     throw new Error(`Model not found at: ${modelPath}`);
   }
   const ort = getOrt(pluginDir);
   ort.env.wasm.numThreads = 1;
-  ort.env.wasm.wasmPaths = pluginDir + "/";
-  console.log(`[Blanq] WASM path: ${pluginDir}/`);
+  const wasmFile = pathMod.join(pluginDir, "ort-wasm-simd-threaded.wasm");
+  if (fs.existsSync(wasmFile)) {
+    console.log(`[Blanq] Loading WASM from disk: ${wasmFile}`);
+    const wasmBuffer = fs.readFileSync(wasmFile);
+    const wasmBlob = new Blob([wasmBuffer], { type: "application/wasm" });
+    const wasmUrl = URL.createObjectURL(wasmBlob);
+    ort.env.wasm.wasmPaths = {
+      "ort-wasm-simd-threaded.wasm": wasmUrl,
+      "ort-wasm-simd.wasm": wasmUrl,
+      "ort-wasm.wasm": wasmUrl,
+      "ort-wasm-threaded.wasm": wasmUrl
+    };
+    console.log("[Blanq] WASM blob URL created");
+  } else {
+    console.warn(`[Blanq] WASM file not found: ${wasmFile}`);
+    const dirUrl = "file:///" + pluginDir.replace(/\\/g, "/") + "/";
+    ort.env.wasm.wasmPaths = dirUrl;
+    console.log(`[Blanq] WASM fallback path: ${dirUrl}`);
+  }
+  console.log("[Blanq] Reading model into memory...");
+  const modelBuffer = fs.readFileSync(modelPath);
+  console.log(`[Blanq] Model size: ${(modelBuffer.length / 1e6).toFixed(1)} MB`);
   console.log("[Blanq] Creating inference session...");
-  modelSession = await ort.InferenceSession.create(modelPath, {
+  modelSession = await ort.InferenceSession.create(modelBuffer.buffer, {
     executionProviders: ["wasm"]
   });
   console.log("[Blanq] Model loaded successfully");

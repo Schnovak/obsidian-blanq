@@ -53,6 +53,7 @@ export async function loadModel(modelPath: string, pluginDir: string): Promise<a
 
   console.log(`[Blanq] Loading model from: ${modelPath}`);
   const fs = require("fs");
+  const pathMod = require("path");
   if (!fs.existsSync(modelPath)) {
     throw new Error(`Model not found at: ${modelPath}`);
   }
@@ -60,11 +61,37 @@ export async function loadModel(modelPath: string, pluginDir: string): Promise<a
   const ort = getOrt(pluginDir);
 
   ort.env.wasm.numThreads = 1;
-  ort.env.wasm.wasmPaths = pluginDir + "/";
-  console.log(`[Blanq] WASM path: ${pluginDir}/`);
+
+  // Override WASM loading: read files from disk and create blob URLs
+  // (Obsidian blocks file:// URLs for WASM)
+  const wasmFile = pathMod.join(pluginDir, "ort-wasm-simd-threaded.wasm");
+  if (fs.existsSync(wasmFile)) {
+    console.log(`[Blanq] Loading WASM from disk: ${wasmFile}`);
+    const wasmBuffer = fs.readFileSync(wasmFile);
+    const wasmBlob = new Blob([wasmBuffer], { type: "application/wasm" });
+    const wasmUrl = URL.createObjectURL(wasmBlob);
+    ort.env.wasm.wasmPaths = {
+      "ort-wasm-simd-threaded.wasm": wasmUrl,
+      "ort-wasm-simd.wasm": wasmUrl,
+      "ort-wasm.wasm": wasmUrl,
+      "ort-wasm-threaded.wasm": wasmUrl,
+    };
+    console.log("[Blanq] WASM blob URL created");
+  } else {
+    console.warn(`[Blanq] WASM file not found: ${wasmFile}`);
+    // Fallback to directory path as URL
+    const dirUrl = "file:///" + pluginDir.replace(/\\/g, "/") + "/";
+    ort.env.wasm.wasmPaths = dirUrl;
+    console.log(`[Blanq] WASM fallback path: ${dirUrl}`);
+  }
+
+  // Load model as ArrayBuffer (avoids file:// path issues)
+  console.log("[Blanq] Reading model into memory...");
+  const modelBuffer = fs.readFileSync(modelPath);
+  console.log(`[Blanq] Model size: ${(modelBuffer.length / 1e6).toFixed(1)} MB`);
 
   console.log("[Blanq] Creating inference session...");
-  modelSession = await ort.InferenceSession.create(modelPath, {
+  modelSession = await ort.InferenceSession.create(modelBuffer.buffer, {
     executionProviders: ["wasm"],
   });
   console.log("[Blanq] Model loaded successfully");
