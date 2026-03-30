@@ -76912,11 +76912,6 @@ var BlanqView = class extends import_obsidian.FileView {
     const style = container.createEl("style");
     style.textContent = BLANQ_CSS;
     const toolbar = container.createDiv({ cls: "blanq-toolbar" });
-    const openBtn = toolbar.createEl("button", {
-      text: "Open PDF",
-      cls: "blanq-btn"
-    });
-    openBtn.addEventListener("click", () => this.pickFile());
     const addBlankBtn = toolbar.createEl("button", {
       text: "+ Add Blank",
       cls: "blanq-btn blanq-btn-ghost"
@@ -76956,7 +76951,7 @@ var BlanqView = class extends import_obsidian.FileView {
     const log = container.createDiv({ cls: "blanq-log" });
     const viewer = container.createDiv({ cls: "blanq-viewer" });
     const dropZone = viewer.createDiv({ cls: "blanq-drop" });
-    dropZone.createDiv({ text: "Drop a PDF here or click Open PDF" });
+    dropZone.createDiv({ text: "Open a PDF from the file explorer" });
     this._refs = { toolbar, viewer, log, exportBtn, aiBtn, addBlankBtn, fontSel, dropZone };
     this.registerDomEvent(container, "keydown", (e) => {
       if (e.key === "Escape") {
@@ -77008,30 +77003,6 @@ var BlanqView = class extends import_obsidian.FileView {
     const data = await this.app.vault.readBinary(file);
     this.pdfBytes = new Uint8Array(data);
     await this.analyze();
-  }
-  async pickFile() {
-    const pdfs = this.app.vault.getFiles().filter((f) => f.extension === "pdf");
-    if (!pdfs.length) {
-      new import_obsidian.Notice("No PDF files found in vault");
-      return;
-    }
-    const { FuzzySuggestModal } = await import("obsidian");
-    class PdfPicker extends FuzzySuggestModal {
-      constructor(app, onChoose) {
-        super(app);
-        this.onChoose = onChoose;
-      }
-      getItems() {
-        return pdfs;
-      }
-      getItemText(item) {
-        return item.path;
-      }
-      onChooseItem(item) {
-        this.onChoose(item);
-      }
-    }
-    new PdfPicker(this.app, (f) => this.loadPdf(f)).open();
   }
   async analyze() {
     if (!this.pdfBytes) return;
