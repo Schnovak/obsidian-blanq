@@ -37,25 +37,37 @@ let modelSession: any = null;
 
 function getOrt(pluginDir: string): any {
   if (ortLib) return ortLib;
-  // Load ort from the plugin directory at runtime (not bundled)
   const ortPath = require("path").join(pluginDir, "ort.all.min.js");
+  console.log(`[Blanq] Loading ONNX Runtime from: ${ortPath}`);
+  const fs = require("fs");
+  if (!fs.existsSync(ortPath)) {
+    throw new Error(`ort.all.min.js not found at: ${ortPath}`);
+  }
   ortLib = require(ortPath);
+  console.log("[Blanq] ONNX Runtime loaded OK");
   return ortLib;
 }
 
 export async function loadModel(modelPath: string, pluginDir: string): Promise<any> {
   if (modelSession) return modelSession;
 
+  console.log(`[Blanq] Loading model from: ${modelPath}`);
+  const fs = require("fs");
+  if (!fs.existsSync(modelPath)) {
+    throw new Error(`Model not found at: ${modelPath}`);
+  }
+
   const ort = getOrt(pluginDir);
 
-  // In Obsidian/Electron we use the WASM backend
   ort.env.wasm.numThreads = 1;
-  // Point WASM files to the plugin directory
   ort.env.wasm.wasmPaths = pluginDir + "/";
+  console.log(`[Blanq] WASM path: ${pluginDir}/`);
 
+  console.log("[Blanq] Creating inference session...");
   modelSession = await ort.InferenceSession.create(modelPath, {
     executionProviders: ["wasm"],
   });
+  console.log("[Blanq] Model loaded successfully");
   return modelSession;
 }
 
